@@ -1,0 +1,258 @@
+/* Reset & Base Styles */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #f8fafc; /* Background putih keabuan sangat terang */
+    color: #1e293b;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Header */
+.header {
+    margin-bottom: 20px;
+}
+
+.supplier-name {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #437057; /* Warna utama */
+    border-left: 5px solid #437057;
+    padding-left: 15px;
+}
+
+/* Tombol Navigasi Atas */
+.btn-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    gap: 10px;
+}
+
+.btn {
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-back {
+    background-color: #ffffff;
+    color: #437057;
+    border: 1px solid #437057;
+}
+
+.btn-back:hover {
+    background-color: #f0fdf4;
+    transform: translateX(-3px);
+}
+
+.btn-add {
+    background-color: #437057;
+    color: #ffffff;
+}
+
+.btn-add:hover {
+    background-color: #355945;
+    box-shadow: 0 4px 12px rgba(67, 112, 87, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Grid System */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+/* Card Style */
+.card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 20px;
+    position: relative;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(67, 112, 87, 0.15);
+    border-color: #437057;
+}
+
+.edit-icon {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    text-decoration: none;
+    font-size: 1rem;
+    padding: 5px;
+    background: #f0fdf4;
+    border-radius: 50%;
+    line-height: 1;
+}
+
+.card-header {
+    margin-bottom: 15px;
+}
+
+.card-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.05rem;
+}
+
+.card-subtitle {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #437057; /* Warna teks nama sales */
+}
+
+.card-content {
+    margin-bottom: 20px;
+    flex-grow: 1;
+}
+
+.card-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.card-label {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.card-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* Tombol Aksi di dalam Card */
+.card-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.action-btn {
+    text-decoration: none;
+    font-size: 0.75rem;
+    text-align: center;
+    padding: 8px 5px;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #437057;
+    border: 1px solid #e2e8f0;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: #437057;
+    color: #ffffff;
+    border-color: #437057;
+}
+
+.btn-order-now {
+    grid-column: span 3;
+    background: #437057;
+    color: #ffffff !important;
+    font-weight: 700;
+    padding: 10px;
+    margin-top: 5px;
+    border: none;
+}
+
+.btn-order-now:hover {
+    background: #355945;
+    transform: scale(1.02);
+}
+
+/* No Data State */
+.no-data {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 50px;
+    background: #fff;
+    border-radius: 16px;
+    color: #64748b;
+    border: 2px dashed #437057;
+}
+
+/* Responsive (Mobile Max 600px) */
+@media (max-width: 600px) {
+    .btn-container {
+        gap: 8px;
+    }
+
+    .btn {
+        padding: 8px;
+        font-size: 0.75rem;
+        flex: 1;
+    }
+
+    .grid-container {
+        grid-template-columns: repeat(2, 1fr); /* 2 Card berjajar */
+        gap: 10px;
+    }
+
+    .card {
+        padding: 12px;
+    }
+
+    .card-subtitle {
+        font-size: 0.85rem;
+    }
+
+    .card-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .card-label, .card-value {
+        font-size: 0.65rem;
+    }
+
+    .card-actions {
+        grid-template-columns: repeat(2, 1fr); /* 2 Tombol berjajar */
+        gap: 6px;
+    }
+
+    .action-btn {
+        font-size: 0.65rem;
+        padding: 6px 2px;
+    }
+
+    .btn-order-now {
+        grid-column: span 2; /* Order Now tetap lebar penuh di bawah */
+        font-size: 0.75rem;
+    }
+}

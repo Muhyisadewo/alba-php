@@ -1,0 +1,15 @@
+# File konfigurasi sensitif
+config.php
+config/config.php
+
+# Folder upload
+uploads/
+images/
+
+# Cache & log
+*.log
+
+# OS / editor
+.vscode/
+.idea/
+.DS_Store
