@@ -452,7 +452,7 @@ $sektor_all_result = $conn->query($sektor_all_sql);
             </div>
             
             <!-- Barang List -->
-            <form action="?path=ambil_barang.php" method="POST" id="ambilBarangForm">
+            <form action="?path=ambil_barang" method="POST" id="ambilBarangForm">
                 <input type="hidden" name="sektor_id" value="<?php echo $sektor_id; ?>">
                 <div class="list-group list-group-flush" id="barangList">
                 <?php if ($barang_result->num_rows > 0): ?>
@@ -518,11 +518,6 @@ $sektor_all_result = $conn->query($sektor_all_sql);
                                             Rp <?php echo number_format($barang['harga_ambil'], 0, ',', '.'); ?>
                                         </small>
                                         
-                                        <small>
-                                            <i class="fas fa-tags me-1"></i>
-                                            Rp <?php echo number_format($barang['harga_jual'], 0, ',', '.'); ?>
-                                        </small>
-                                        
                                         <?php if (!empty($barang['barcode'])): ?>
                                         <small>
                                             <i class="fas fa-barcode me-1"></i>
@@ -551,7 +546,7 @@ $sektor_all_result = $conn->query($sektor_all_sql);
                             <!-- Actions -->
                             <div class="d-flex align-items-center gap-2">
                                 <!-- Tombol Edit -->
-                                <a href="?path=edit_barang_gdg.php?id=<?php echo $barang['id']; ?>" 
+                                <a href="?path=edit_barang_gdg&id=<?php echo $barang['id']; ?>"
                                    class="btn btn-action btn-warning" 
                                    title="Edit Barang">
                                     <i class="fas fa-edit"></i>
@@ -609,30 +604,28 @@ $sektor_all_result = $conn->query($sektor_all_sql);
     <?php if ($barang_result->num_rows > 0): ?>
     <div class="fixed-bottom-bar">
         <div class="container">
-            <form action="?path=ambil_barang.php" method="POST" id="ambilBarangForm">
-                <input type="hidden" name="sektor_id" value="<?php echo $sektor_id; ?>">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <i class="fas fa-shopping-cart fa-2x text-primary"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0">Ambil Barang</h6>
-                                <small class="text-muted">Kamu ambil: <span id="totalSelected">0</span> item</small>
-                            </div>
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-shopping-cart fa-2x text-primary"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Ambil Barang</h6>
+                            <small class="text-muted">Kamu ambil: <span id="totalSelected">0</span> item</small>
                         </div>
                     </div>
-                    <div class="col-md-6 text-end">
-                        <button type="submit" class="btn btn-success btn-lg px-5" id="submitAmbilBtn">
-                            <i class="fas fa-check-circle me-2"></i>Ambil Sekarang
-                        </button>
-                    </div>
                 </div>
-            </form>
+                <div class="col-md-6 text-end">
+                    <button type="submit" class="btn btn-success btn-lg px-5" id="submitAmbilBtn">
+                        <i class="fas fa-check-circle me-2"></i>Ambil Sekarang
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
     <?php endif; ?>
+</form>
 
     <!-- Modal Tambah Barang (SAMA PERSIS dengan Edit) -->
     <div class="modal fade" id="tambahBarangModal" tabindex="-1" aria-hidden="true">
@@ -644,7 +637,7 @@ $sektor_all_result = $conn->query($sektor_all_sql);
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" action="?path=tambah_barang_sektor.php" enctype="multipart/form-data" id="tambahBarangForm">
+                <form method="POST" action="?path=tambah_barang_sektor" enctype="multipart/form-data" id="tambahBarangForm">
                     <input type="hidden" name="sektor_id" value="<?php echo $sektor_id; ?>">
                     
                     <div class="modal-body">
@@ -698,56 +691,36 @@ $sektor_all_result = $conn->query($sektor_all_sql);
                             <i class="fas fa-box me-2"></i>Informasi Barang
                         </h5>
                         
-                        <!-- Baris 1: Nama Barang, Harga Ambil, Harga Jual -->
+                        <!-- Baris 1: Nama Barang, Harga Ambil -->
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="nama_barang" class="form-label" style="font-weight: 600; color: #2d3748;">
                                         <i class="fas fa-tag"></i> Nama Barang *
                                     </label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="nama_barang" 
-                                           name="nama_barang" 
+                                    <input type="text"
+                                           class="form-control"
+                                           id="nama_barang"
+                                           name="nama_barang"
                                            required
                                            placeholder="Masukkan nama barang"
                                            style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
                                 </div>
                             </div>
-                            
-                            <div class="col-md-4">
+
+                            <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="harga_ambil" class="form-label" style="font-weight: 600; color: #2d3748;">
                                         <i class="fas fa-money-bill-wave"></i> Harga Ambil *
                                     </label>
                                     <div class="input-group">
                                         <span class="input-group-text">Rp</span>
-                                        <input type="number" 
-                                               class="form-control" 
-                                               id="harga_ambil" 
-                                               name="harga_ambil" 
-                                               min="0" 
-                                               step="100" 
-                                               required
-                                               placeholder="0"
-                                               style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="harga_jual" class="form-label" style="font-weight: 600; color: #2d3748;">
-                                        <i class="fas fa-tags"></i> Harga Jual *
-                                    </label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">Rp</span>
-                                        <input type="number" 
-                                               class="form-control" 
-                                               id="harga_jual" 
-                                               name="harga_jual" 
-                                               min="0" 
-                                               step="100" 
+                                        <input type="number"
+                                               class="form-control"
+                                               id="harga_ambil"
+                                               name="harga_ambil"
+                                               min="0"
+                                               step="100"
                                                required
                                                placeholder="0"
                                                style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
@@ -841,40 +814,26 @@ $sektor_all_result = $conn->query($sektor_all_sql);
                             <i class="fas fa-info-circle me-2"></i>Informasi Tambahan
                         </h5>
                         
-                        <!-- Baris 3: Barcode, Deskripsi -->
+                        <!-- Baris 3: Barcode -->
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-12">
                                 <div class="mb-3">
                                     <label for="barcode" class="form-label" style="font-weight: 600; color: #2d3748;">
                                         <i class="fas fa-barcode"></i> Barcode
                                     </label>
                                     <div class="input-group">
-                                        <input type="text" 
-                                               class="form-control" 
-                                               id="barcode" 
-                                               name="barcode" 
+                                        <input type="text"
+                                               class="form-control"
+                                               id="barcode"
+                                               name="barcode"
                                                placeholder="Kode barcode (opsional)"
                                                style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
-                                        <button type="button" 
-                                                class="btn btn-outline-secondary" 
+                                        <button type="button"
+                                                class="btn btn-outline-secondary"
                                                 id="scanBarcodeBtn">
                                             <i class="fas fa-camera"></i> Scan
                                         </button>
                                     </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-8">
-                                <div class="mb-3">
-                                    <label for="deskripsi" class="form-label" style="font-weight: 600; color: #2d3748;">
-                                        <i class="fas fa-align-left"></i> Deskripsi
-                                    </label>
-                                    <textarea class="form-control" 
-                                              id="deskripsi" 
-                                              name="deskripsi" 
-                                              rows="3"
-                                              placeholder="Deskripsi barang (opsional)"
-                                              style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -1092,23 +1051,19 @@ $sektor_all_result = $conn->query($sektor_all_sql);
                 document.getElementById('nama_sales_baru').focus();
             });
             
+            // Floating add button
+            document.querySelector('.floating-add-btn').addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('tambahBarangModal'));
+                modal.show();
+            });
+
             // Form validation untuk tambah barang
             document.getElementById('tambahBarangForm').addEventListener('submit', validateTambahBarangForm);
             
             // Form validation untuk ambil barang
             document.getElementById('ambilBarangForm').addEventListener('submit', validateAmbilBarangForm);
             
-            // Auto-calculate harga jual
-            document.getElementById('harga_ambil').addEventListener('blur', function() {
-                const hargaAmbil = parseFloat(this.value);
-                const hargaJual = document.getElementById('harga_jual');
-                
-                if (hargaAmbil > 0 && (!hargaJual.value || hargaJual.value == 0)) {
-                    const calculatedPrice = Math.ceil(hargaAmbil * 1.3 / 100) * 100;
-                    hargaJual.value = calculatedPrice;
-                    showToast(`Harga jual otomatis dihitung: Rp ${calculatedPrice.toLocaleString('id-ID')}`, 'info');
-                }
-            });
+
             
             // Quantity input change events
             document.querySelectorAll('.qty-input').forEach(input => {
@@ -1157,7 +1112,7 @@ $sektor_all_result = $conn->query($sektor_all_sql);
             
             showLoading(true);
             
-            fetch(`?path=get_barang.php?sektor_id=${sektorId}&search=${encodeURIComponent(searchTerm)}`)
+            fetch(`index.php?path=get_barang&sektor_id=${sektorId}&search=${encodeURIComponent(searchTerm)}`)
                 .then(response => response.json())
                 .then(data => {
                     showLoading(false);
@@ -1217,11 +1172,6 @@ $sektor_all_result = $conn->query($sektor_all_sql);
                                                 <small>
                                                     <i class="fas fa-money-bill-wave me-1"></i>
                                                     Rp ${parseInt(barang.harga_ambil).toLocaleString('id-ID')}
-                                                </small>
-                                                
-                                                <small>
-                                                    <i class="fas fa-tags me-1"></i>
-                                                    Rp ${parseInt(barang.harga_jual).toLocaleString('id-ID')}
                                                 </small>
                                                 
                                                 ${barang.barcode ? `
@@ -1423,7 +1373,7 @@ $sektor_all_result = $conn->query($sektor_all_sql);
             salesSelect.innerHTML = '<option value="">Memuat sales...</option>';
             salesSelect.disabled = true;
             
-            fetch(`?path=get_sales.php?supplier_id=${supplierId}`)
+            fetch(`?path=get_sales&supplier_id=${supplierId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -1592,7 +1542,7 @@ $sektor_all_result = $conn->query($sektor_all_sql);
             deleteModal.show();
             
             document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-                window.location.href = `?path=hapus_barang.php?id=${barangId}`;
+                window.location.href = `?path=hapus_barang&id=${barangId}`;
             });
             
             document.getElementById('deleteModal').addEventListener('hidden.bs.modal', function() {
@@ -1610,7 +1560,7 @@ $sektor_all_result = $conn->query($sektor_all_sql);
             
             showLoading(true);
             
-            fetch('?path=tambah_supplier_ajax.php', {
+            fetch('?path=tambah_supplier_ajax', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: 'nama_supplier=' + encodeURIComponent(nama)
@@ -1665,7 +1615,7 @@ $sektor_all_result = $conn->query($sektor_all_sql);
             
             showLoading(true);
             
-            fetch('?path=tambah_sales_ajax.php', {
+            fetch('?path=tambah_sales_ajax', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: `nama_sales=${encodeURIComponent(nama)}&supplier_id=${supplierId}`
@@ -1699,30 +1649,17 @@ $sektor_all_result = $conn->query($sektor_all_sql);
         // Validasi form tambah barang
         function validateTambahBarangForm(e) {
             e.preventDefault();
-            
+
             const hargaAmbil = parseFloat(document.getElementById('harga_ambil').value);
-            const hargaJual = parseFloat(document.getElementById('harga_jual').value);
             const qty = parseInt(document.getElementById('qty').value);
             const maxOrder = parseInt(document.getElementById('max_order').value);
             const supplier = document.getElementById('supplier_id').value;
             const sales = document.getElementById('sales_id').value;
-            
+
             // Validasi harga
             if (hargaAmbil <= 0) {
                 showToast('Harga ambil harus lebih dari 0', 'error');
                 document.getElementById('harga_ambil').focus();
-                return;
-            }
-            
-            if (hargaJual <= 0) {
-                showToast('Harga jual harus lebih dari 0', 'error');
-                document.getElementById('harga_jual').focus();
-                return;
-            }
-            
-            if (hargaJual < hargaAmbil) {
-                showToast('Harga jual tidak boleh lebih rendah dari harga ambil', 'error');
-                document.getElementById('harga_jual').focus();
                 return;
             }
             

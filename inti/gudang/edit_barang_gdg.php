@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($update_stmt->execute()) {
                 // Redirect dengan pesan sukses
-                header("Location: ?path=sektor_detail.php?id=" . $sektor_id . "&success=Barang berhasil diperbarui");
+                header("Location: ?path=sektor_detail&id=" . $sektor_id . "&success=Barang berhasil diperbarui");
                 exit;
             } else {
                 $error = "Gagal memperbarui barang: " . $update_stmt->error;

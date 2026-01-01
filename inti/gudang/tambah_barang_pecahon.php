@@ -11,6 +11,9 @@ $nama_barang = trim($_POST['nama_barang'] ?? '');
 $harga_ambil = floatval($_POST['harga_ambil'] ?? 0);
 $qty = intval($_POST['qty'] ?? 0);
 $barcode = trim($_POST['barcode'] ?? '');
+$deskripsi = trim($_POST['deskripsi'] ?? '');
+$max_order = intval($_POST['max_order'] ?? 0);
+$expired_date = trim($_POST['expired_date'] ?? '');
 $supplier_id = intval($_POST['supplier_id'] ?? 0);
 $sales_id = intval($_POST['sales_id'] ?? 0);
 
@@ -98,18 +101,29 @@ if (isset($_FILES['gambar']) && $_FILES['gambar']['error'] === UPLOAD_ERR_OK) {
 }
 
 // Insert ke database
-$sql = "INSERT INTO gudang_pecahon (nama_barang, harga_ambil, qty, gambar, barcode, supplier_id, sales_id, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+$sql = "INSERT INTO gudang_pecahon (nama_barang, deskripsi, harga_ambil, qty, max_order, gambar, barcode, supplier_id, sales_id, created_at, expired_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)";
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
     die('Prepare failed: ' . $conn->error);
 }
 
-$stmt->bind_param('sdisiii', $nama_barang, $harga_ambil, $qty, $gambar, $barcode, $supplier_id, $sales_id);
-
+$stmt->bind_param(
+    'ssdiissiis',
+    $nama_barang,
+    $deskripsi,
+    $harga_ambil,
+    $qty,
+    $max_order,
+    $gambar,
+    $barcode,
+    $supplier_id,
+    $sales_id,
+    $expired_date
+);
 if ($stmt->execute()) {
     // Redirect kembali ke halaman gudang pecahon dengan pesan sukses
-    header('Location: gudang_pecahon.php?success=1');
+    header('Location: gudang_pecahon&success=1');
     exit;
 } else {
     die('Gagal menambah barang: ' . $stmt->error);

@@ -13,3 +13,8 @@ images/
 .vscode/
 .idea/
 .DS_Store
+
+# File lingkungan
+.env
+config.php
+config/config.php

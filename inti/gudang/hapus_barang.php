@@ -27,7 +27,7 @@ $stmt2 = $conn->prepare($deleteSql);
 $stmt2->bind_param("i", $id);
 
 if ($stmt2->execute()) {
-    header("Location: ?path=sektor_detail.php?id=" . $sektor_id);
+    header("Location: index.php?path=sektor_detail&id=" . $sektor_id);
     exit;
 } else {
     echo "Gagal menghapus data.";

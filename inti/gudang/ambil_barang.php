@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($sektor_id <= 0) {
         $log_message = "[" . date('Y-m-d H:i:s') . "] ERROR: sektor_id tidak valid\n";
         file_put_contents($log_file, $log_message, FILE_APPEND);
-        header("Location: ?path=sektor_detail.php?id=" . $sektor_id . "&error=Sektor+tidak+valid");
+        header("Location: index.php?path=sektor_detail&id=" . $sektor_id . "&error=Sektor+tidak+valid");
         exit;
     }
     
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$barang_dipilih) {
         $log_message = "[" . date('Y-m-d H:i:s') . "] ERROR: Tidak ada barang yang dipilih (semua qty = 0)\n";
         file_put_contents($log_file, $log_message, FILE_APPEND);
-        header("Location: ?path=sektor_detail.php?id=" . $sektor_id . "&error=Tidak+ada+barang+yang+dipilih");
+        header("Location: index.php?path=sektor_detail.php?id=" . $sektor_id . "&error=Tidak+ada+barang+yang+dipilih");
         exit;
     }
     
@@ -225,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $log_message = "[" . date('Y-m-d H:i:s') . "] Redirect ke sektor_detail.php dengan pesan sukses\n";
             file_put_contents($log_file, $log_message, FILE_APPEND);
             
-            header("Location: ?path=sektor_detail.php?id=" . $sektor_id . "&success=" . urlencode($message));
+            header("Location: index.php?path=sektor_detail&id=" . $sektor_id . "&success=" . urlencode($message));
             exit;
             
         } else {
@@ -237,7 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $log_message = "[" . date('Y-m-d H:i:s') . "] Errors: $error_message\n";
             file_put_contents($log_file, $log_message, FILE_APPEND);
             
-            header("Location: ?path=sektor_detail.php?id=" . $sektor_id . "&error=" . urlencode($error_message));
+            header("Location: index.php?path=sektor_detail&id=" . $sektor_id . "&error=" . urlencode($error_message));
             exit;
         }
         
@@ -247,14 +247,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $log_message .= "[" . date('Y-m-d H:i:s') . "] Stack trace: " . $e->getTraceAsString() . "\n";
         file_put_contents($log_file, $log_message, FILE_APPEND);
         
-        header("Location: ?path=sektor_detail.php?id=" . $sektor_id . "&error=" . urlencode("Terjadi kesalahan sistem"));
+        header("Location: index.php?path=sektor_detail&id=" . $sektor_id . "&error=" . urlencode("Terjadi kesalahan sistem"));
         exit;
     }
     
 } else {
     $log_message = "[" . date('Y-m-d H:i:s') . "] ERROR: Bukan POST request\n";
     file_put_contents($log_file, $log_message, FILE_APPEND);
-    header("Location: inti/gudang/index.php");
+    header("Location: index.php?path=sektor_detail&id=$sektor_id&success=" . urlencode("Barang berhasil diambil"));
     exit;
 }
 

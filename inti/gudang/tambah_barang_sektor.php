@@ -204,7 +204,7 @@ $stmt_gudang->bind_param("issdissssii",
     $conn->commit();
 
     // Redirect dengan sukses
-    header("Location: ?path=sektor_detail.php?id=" . $sektor_id . "&success=Barang berhasil ditambahkan");
+    header("Location: index.php?path=sektor_detail&id=" . $sektor_id . "&success=Barang berhasil ditambahkan");
     exit;
 
 } catch (Exception $e) {
@@ -217,7 +217,7 @@ $stmt_gudang->bind_param("issdissssii",
     }
     
     // Redirect dengan error
-    header("Location: ?path=sektor_detail.php?id=" . $sektor_id . "&error=" . urlencode($e->getMessage()));
+    header("Location: index.php?path=sektor_detail&id=" . $sektor_id . "&error=" . urlencode($e->getMessage()));
     exit;
 }
 

@@ -1,13 +1,26 @@
 <?php
+// gudang_pecahon.php
 include __DIR__ . '/../../config.php';
 
 // Ambil barang dari gudang pecahon
-$barang_sql = "SELECT id, nama_barang, harga_ambil, qty, gambar, barcode, created_at
-               FROM gudang_pecahon
-               ORDER BY created_at DESC";
+$barang_sql = "
+    SELECT gp.*, s.nama_supplier, sl.nama_sales
+    FROM gudang_pecahon gp
+    LEFT JOIN supplier s ON gp.supplier_id = s.id
+    LEFT JOIN sales sl ON gp.sales_id = sl.id
+    ORDER BY gp.created_at DESC
+";
 $barang_stmt = $conn->prepare($barang_sql);
 $barang_stmt->execute();
 $barang_result = $barang_stmt->get_result();
+
+// Ambil semua supplier
+$supplier_sql = "SELECT id, nama_supplier FROM supplier ORDER BY nama_supplier ASC";
+$supplier_result = $conn->query($supplier_sql);
+
+// Variabel untuk halaman (tidak ada sektor)
+$page_title = "Gudang Pecahon";
+$total_barang = $barang_result->num_rows;
 ?>
 
 <!DOCTYPE html>
@@ -15,457 +28,1460 @@ $barang_result = $barang_stmt->get_result();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gudang Pecahon</title>
+    <title><?php echo $page_title; ?> - Sistem Gudang</title>
+    
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    
+    <!-- Flatpickr CSS untuk kalender modern -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
+    
     <style>
-        /* Custom responsive styles */
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --success-color: #4cc9f0;
+            --warning-color: #f72585;
+        }
+        
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
+            margin-top: 20px;
+            margin-bottom: 100px;
         }
-
-        .search-form {
-            max-width: 400px;
-        }
-
-        .barang-item {
-            padding: 1rem;
-        }
-
-        .barang-item img {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-        }
-
-        .qty-controls {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .qty-input {
-            width: 60px !important;
-            text-align: center;
-        }
-
-        /* Mobile responsiveness */
-        @media (max-width: 768px) {
-            .container {
-                padding-left: 15px;
-                padding-right: 15px;
-            }
-
-            .barang-item {
-                padding: 0.75rem;
-                flex-direction: column !important;
-                align-items: flex-start !important;
-            }
-
-            .barang-item .d-flex {
-                width: 100%;
-                margin-bottom: 0.5rem;
-            }
-
-            .barang-item .d-flex:last-child {
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .qty-controls {
-                gap: 0.25rem;
-            }
-
-            .qty-input {
-                width: 50px !important;
-            }
-
-            .search-form {
-                max-width: 100%;
-            }
-
-            .fixed-bottom {
-                padding: 1rem 15px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .barang-item h6 {
-                font-size: 1rem;
-            }
-
-            .barang-item small {
-                font-size: 0.8rem;
-            }
-
-            .btn-sm {
-                padding: 0.25rem 0.5rem;
-                font-size: 0.875rem;
-            }
-
-            .qty-input {
-                width: 45px !important;
-                font-size: 0.875rem;
-            }
-        }
-
-        /* Button positioning */
-        .top-buttons {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 10;
-        }
-
-        .add-button {
-            background: #007bff;
+        
+        .card {
             border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            border-bottom: none;
+            padding: 1.5rem 2rem;
+        }
+        
+        .list-group-item {
+            border: none;
+            border-bottom: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .list-group-item:hover {
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+        
+        /* Floating Add Button */
+        .floating-add-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-size: 1.5rem;
+            box-shadow: 0 5px 20px rgba(67, 97, 238, 0.4);
+            transition: all 0.3s ease;
         }
-
-        .add-button:hover {
-            background: #0056b3;
+        
+        .floating-add-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.5);
             color: white;
         }
-
+        
+        /* Item barang styling */
+        .barang-item {
+            padding: 1.25rem;
+        }
+        
+        .barang-image {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .barang-details h6 {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        
+        .barang-details small {
+            color: #718096;
+            font-size: 0.875rem;
+        }
+        
+        .badge-stock {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+        }
+        
+        .badge-stock.low {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .badge-stock.medium {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+        
+        .badge-stock.high {
+            background-color: #d1fae5;
+            color: #059669;
+        }
+        
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .qty-input {
+            width: 70px !important;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .btn-action {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+        
+        .search-container {
+            position: relative;
+            max-width: 400px;
+        }
+        
+        .search-container .form-control {
+            padding-left: 45px;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .search-container .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 30%;
+            transform: translateY(-50%);
+            color: #718096;
+            z-index: 10;
+        }
+        
+        .fixed-bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            padding: 0;
+            max-height: 190px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+            z-index: 999;
+        }
+        
+        /* Styling untuk modal */
+        .modal-xl {
+            max-width: 1200px;
+        }
+        
+        .modal-content {
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            border-bottom: none;
+            padding: 1.5rem 2rem;
+        }
+        
+        .modal-body {
+            padding: 2rem;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        /* Responsive Design */
         @media (max-width: 768px) {
-            .top-buttons {
-                top: 15px;
+            .container {
+                padding: 15px;
+                margin-top: 10px;
+            }
+            
+            .barang-item {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 15px;
+            }
+            
+            .barang-details {
+                width: 100%;
+            }
+            
+            .barang-actions {
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .qty-controls {
+                gap: 5px;
+            }
+            
+            .qty-input {
+                width: 60px !important;
+            }
+            
+            .floating-add-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 55px;
+                height: 55px;
+                font-size: 1.3rem;
+            }
+            
+            .search-container {
+                max-width: 100%;
+            }
+            
+            .modal-body {
+                padding: 1.5rem;
+                max-height: 60vh;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .barang-image {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .btn-action {
+                width: 35px;
+                height: 35px;
+                font-size: 0.875rem;
+            }
+            
+            .qty-input {
+                width: 50px !important;
+                font-size: 0.875rem;
+            }
+            
+            .floating-add-btn {
+                bottom: 15px;
                 right: 15px;
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
             }
-
-            .add-button {
-                width: 45px;
-                height: 45px;
-                font-size: 1.1rem;
-            }
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .barang-item {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            color: #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+        
+        .empty-state h4 {
+            color: #718096;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state p {
+            color: #a0aec0;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        /* Supplier/Sales info */
+        .supplier-info {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        
+        .supplier-info i {
+            margin-right: 5px;
         }
     </style>
 </head>
 <body>
-    <!-- Floating Add Button -->
-    <div class="top-buttons">
-        <button type="button" class="btn add-button" data-bs-toggle="modal" data-bs-target="#tambahBarangModal">
-            <i class="fas fa-plus"></i>
-        </button>
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner mb-3"></div>
+        <h5>Memproses...</h5>
     </div>
-
-    <div class="container mt-5">
-        <h1 class="mb-4">Gudang Pecahon</h1>
-
-        <!-- Search Bar -->
-        <div class="mb-2">
-            <form id="searchForm" class="d-flex search-form">
-                <input type="text" id="searchInput" class="form-control" placeholder="Cari barang..." autocomplete="off">
-                <button type="button" class="btn btn-outline-secondary ms-2" id="clearSearchBtn">
-                    <i class="fas fa-times"></i>
-                </button>
-            </form>
-        </div>
-
-        <!-- Back Button -->
-        <div class="mb-4">
-            <a href="inti/gudang/index.php" class="btn btn-secondary">
-                <i class="fas fa-arrow-left me-2"></i>
-            </a>
-        </div>
-
-        <form action="?path=ambil_barang_pecahon.php" method="POST">
-            <div class="list-group" id="barangList">
+    
+    <!-- Floating Add Button -->
+    <button type="button" class="floating-add-btn" data-bs-toggle="modal" data-bs-target="#tambahBarangModal">
+        <i class="fas fa-plus"></i>
+    </button>
+    
+    <div class="container">
+        <form action="?path=ambil_barang_pecahon" method="POST" id="ambilBarangForm">
+        <!-- Header Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-0"><i class="fas fa-boxes me-2"></i><?php echo $page_title; ?></h4>
+                        <p class="mb-0 opacity-75">Total <?php echo $total_barang; ?> barang</p>
+                    </div>
+                    <a href="index.php?path=gudang" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-1"></i> Kembali
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Search Bar -->
+            <div class="card-body border-bottom">
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" 
+                           id="searchInput" 
+                           class="form-control" 
+                           placeholder="Cari dengan nama, barcode, atau supplier..." 
+                           autocomplete="off">
+                    <div class="form-text mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Cari barang secara real-time
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Barang List -->
+            <div class="list-group list-group-flush" id="barangList">
                 <?php if ($barang_result->num_rows > 0): ?>
-                    <?php while ($barang = $barang_result->fetch_assoc()): ?>
-                        <div class="list-group-item d-flex justify-content-between align-items-center barang-item" data-id="<?php echo $barang['id']; ?>" data-nama="<?php echo htmlspecialchars($barang['nama_barang']); ?>">
-                            <div class="d-flex align-items-center">
-                                <img src="../../uploads/barang/<?php echo htmlspecialchars($barang['gambar'] ?? 'default.jpg'); ?>" alt="Gambar Barang" style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px;">
-                                <div>
-                                    <h6 class="mb-1"><?php echo htmlspecialchars($barang['nama_barang']); ?></h6>
-                                    <small>Qty: <?php echo htmlspecialchars($barang['qty']); ?> | Harga: Rp <?php echo number_format($barang['harga_ambil'], 0, ',', '.'); ?></small>
+                    <?php while ($barang = $barang_result->fetch_assoc()): 
+                        // Tentukan status stok berdasarkan quantity
+                        $stock_class = '';
+                        if ($barang['qty'] <= 10) {
+                            $stock_class = 'low';
+                        } elseif ($barang['qty'] <= 50) {
+                            $stock_class = 'medium';
+                        } else {
+                            $stock_class = 'high';
+                        }
+                        
+                        // Format tanggal expired jika ada
+                        $expired_text = '';
+                        if (!empty($barang['expired_date']) && $barang['expired_date'] != '0000-00-00') {
+                            $expired_date = date('d/m/Y', strtotime($barang['expired_date']));
+                            $today = new DateTime();
+                            $exp_date = new DateTime($barang['expired_date']);
+                            $diff = $today->diff($exp_date)->days;
+                            
+                            if ($exp_date < $today) {
+                                $expired_text = '<span class="badge bg-danger ms-2">Expired</span>';
+                            } elseif ($diff <= 7) {
+                                $expired_text = '<span class="badge bg-warning ms-2">Akan Expired</span>';
+                            }
+                        }
+                    ?>
+                        <div class="list-group-item d-flex justify-content-between align-items-center barang-item" 
+                             data-id="<?php echo $barang['id']; ?>" 
+                             data-nama="<?php echo htmlspecialchars($barang['nama_barang']); ?>"
+                             data-barcode="<?php echo htmlspecialchars($barang['barcode'] ?? ''); ?>">
+                            
+                            <!-- Info Barang -->
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="../../uploads/barang/<?php echo htmlspecialchars($barang['gambar'] ?? 'default.jpg'); ?>" 
+                                     alt="Gambar Barang" 
+                                     class="barang-image"
+                                     onerror="this.src='../../uploads/barang/default.jpg'">
+                                
+                                <div class="barang-details">
+                                    <h6 class="mb-1">
+                                        <?php echo htmlspecialchars($barang['nama_barang']); ?>
+                                        <?php if (!empty($barang['max_order']) && $barang['max_order'] > 0): ?>
+                                            <small class="text-muted ms-2">
+                                                <i class="fas fa-shopping-cart"></i> Max: <?php echo $barang['max_order']; ?>
+                                            </small>
+                                        <?php endif; ?>
+                                        <?php echo $expired_text; ?>
+                                    </h6>
+                                    
+                                    <div class="d-flex flex-wrap gap-3">
+                                        <small>
+                                            <i class="fas fa-cubes me-1"></i>
+                                            <span class="badge badge-stock <?php echo $stock_class; ?>">
+                                                <?php echo $barang['qty']; ?> pcs
+                                            </span>
+                                        </small>
+                                        
+                                        <small>
+                                            <i class="fas fa-money-bill-wave me-1"></i>
+                                            Rp <?php echo number_format($barang['harga_ambil'], 0, ',', '.'); ?>
+                                        </small>
+                                        
+                                        <?php if (!empty($barang['barcode'])): ?>
+                                        <small>
+                                            <i class="fas fa-barcode me-1"></i>
+                                            <?php echo htmlspecialchars($barang['barcode']); ?>
+                                        </small>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (!empty($barang['expired_date']) && $barang['expired_date'] != '0000-00-00'): ?>
+                                        <small>
+                                            <i class="fas fa-calendar-alt me-1"></i>
+                                            Exp: <?php echo date('d/m/Y', strtotime($barang['expired_date'])); ?>
+                                        </small>
+                                        <?php endif; ?>
+                                    </div>
+                                    
+                                    <!-- Supplier & Sales Info -->
+                                    <div class="supplier-info mt-2">
+                                        <?php if (!empty($barang['nama_supplier'])): ?>
+                                        <span class="me-3">
+                                            <i class="fas fa-industry"></i>
+                                            <?php echo htmlspecialchars($barang['nama_supplier']); ?>
+                                        </span>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (!empty($barang['nama_sales'])): ?>
+                                        <span>
+                                            <i class="fas fa-user-tie"></i>
+                                            <?php echo htmlspecialchars($barang['nama_sales']); ?>
+                                        </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    
+                                    <?php if (!empty($barang['deskripsi'])): ?>
+                                    <small class="d-block mt-2 text-muted">
+                                        <i class="fas fa-align-left me-1"></i>
+                                        <?php echo htmlspecialchars(substr($barang['deskripsi'], 0, 100)); ?>
+                                        <?php if (strlen($barang['deskripsi']) > 100): ?>...<?php endif; ?>
+                                    </small>
+                                    <?php endif; ?>
                                 </div>
                             </div>
-                                <div class="d-flex align-items-center">
-                                    <a href="?path=edit_barang_pecahon.php?id=<?php echo $barang['id']; ?>" class="btn btn-sm btn-warning me-1">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-danger me-2" onclick="showDeleteModal(<?php echo $barang['id']; ?>, '<?php echo addslashes($barang['nama_barang']); ?>')">
-                                        <i class="fas fa-trash"></i>
+                            
+                            <!-- Actions -->
+                            <div class="d-flex align-items-center gap-2">
+                                <!-- Tombol Edit -->
+                                <a href="?path=edit_barang_pecahon&id=<?php echo $barang['id']; ?>"
+                                   class="btn btn-action btn-warning" 
+                                   title="Edit Barang">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                
+                                <!-- Tombol Delete -->
+                                <button type="button" 
+                                        class="btn btn-action btn-danger" 
+                                        title="Hapus Barang"
+                                        onclick="showDeleteModal(<?php echo $barang['id']; ?>, '<?php echo addslashes($barang['nama_barang']); ?>')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                
+                                <!-- Quantity Controls -->
+                                <div class="qty-controls">
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-secondary" 
+                                            onclick="changeQty(this, -1)">
+                                        <i class="fas fa-minus"></i>
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeQty(this, -1)">-</button>
-                                    <input type="number" name="ambil[<?php echo $barang['id']; ?>]" value="0" min="0" max="<?php echo $barang['qty']; ?>" class="form-control form-control-sm mx-2 qty-input" style="width: 60px;" readonly>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeQty(this, 1)">+</button>
+                                    
+                                    <input type="number"
+                                           name="ambil[<?php echo $barang['id']; ?>]"
+                                           value="0"
+                                           min="0"
+                                           max="<?php echo $barang['qty']; ?>"
+                                           class="form-control form-control-sm qty-input">
+                                    
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-secondary" 
+                                            onclick="changeQty(this, 1)">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
                                 </div>
+                            </div>
                         </div>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <div class="alert alert-info" role="alert">
-                        Belum ada barang.
+                    <!-- Empty State -->
+                    <div class="empty-state">
+                        <i class="fas fa-box-open"></i>
+                        <h4>Tidak ada barang di gudang pecahon</h4>
+                        <p>Mulai tambahkan barang pertama Anda dengan mengklik tombol <i class="fas fa-plus"></i> di pojok kanan bawah</p>
+                        <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#tambahBarangModal">
+                            <i class="fas fa-plus me-2"></i>Tambah Barang Pertama
+                        </button>
                     </div>
                 <?php endif; ?>
             </div>
-
-            <!-- Fixed Bottom Button -->
-            <div class="fixed-bottom bg-white border-top p-3">
-                <div class="container">
-                    <button type="submit" class="btn btn-success btn-lg w-100">Ambil Barang</button>
-                </div>
-            </div>
-        </form>
+        </div>
     </div>
+    
+    <!-- Fixed Bottom Bar -->
+    <?php if ($barang_result->num_rows > 0): ?>
+    <div class="fixed-bottom-bar">
+        <div class="container">
+            <form action="?path=ambil_barang_pecahon" method="POST" id="ambilBarangForm">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-shopping-cart fa-2x text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Ambil Barang dari Pecahon</h6>
+                                <small class="text-muted">Kamu ambil: <span id="totalSelected">0</span> item</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button type="submit" class="btn btn-success btn-lg px-5" id="submitAmbilBtn">
+                            <i class="fas fa-check-circle me-2"></i>Ambil Sekarang
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
 
-    <!-- Modal untuk tambah barang -->
-    <div class="modal fade" id="tambahBarangModal" tabindex="-1" aria-labelledby="tambahBarangModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+    <!-- Modal Tambah Barang -->
+    <div class="modal fade" id="tambahBarangModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="tambahBarangModalLabel">Tambah Barang ke Gudang Pecahon</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>Tambah Barang Baru ke Gudang Pecahon
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="?path=tambah_barang_pecahon.php" method="POST" enctype="multipart/form-data">
+                <form method="POST" action="?path=tambah_barang_pecahon" enctype="multipart/form-data" id="tambahBarangForm">
                     <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="namaBarang" class="form-label">Nama Barang</label>
-                                    <input type="text" class="form-control" id="namaBarang" name="nama_barang" required>
-                                </div>
+                        <?php if (isset($_GET['error'])): ?>
+                            <div class="alert alert-danger alert-dismissible fade show">
+                                <?php echo htmlspecialchars($_GET['error']); ?>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="hargaAmbil" class="form-label">Harga Ambil</label>
-                                    <input type="number" class="form-control" id="hargaAmbil" name="harga_ambil" step="0.01" required>
+                        <?php endif; ?>
+                        
+                        <!-- Preview Gambar -->
+                        <div class="row mb-4">
+                            <div class="col-md-12 text-center">
+                                <img src="../../uploads/barang/default.jpg" 
+                                     alt="Preview Gambar" 
+                                     class="gambar-preview"
+                                     id="gambarPreview"
+                                     onclick="document.getElementById('gambarInput').click()"
+                                     style="width: 180px; height: 180px; object-fit: cover; border-radius: 12px; border: 3px solid #e9ecef; margin-bottom: 15px; cursor: pointer;">
+                                
+                                <div class="mt-2">
+                                    <input type="file" 
+                                           class="form-control d-none" 
+                                           id="gambarInput" 
+                                           name="gambar" 
+                                           accept="image/*">
+                                    
+                                    <div class="btn-group" role="group">
+                                        <button type="button" 
+                                                class="btn btn-outline-primary btn-sm"
+                                                onclick="document.getElementById('gambarInput').click()">
+                                            <i class="fas fa-camera me-1"></i> Pilih Gambar
+                                        </button>
+                                        <button type="button" 
+                                                class="btn btn-outline-danger btn-sm"
+                                                onclick="resetGambar()">
+                                            <i class="fas fa-times me-1"></i> Reset
+                                        </button>
+                                    </div>
+                                    
+                                    <small class="text-muted d-block mt-1">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Ukuran maksimal 5MB. Format: JPG, PNG, GIF, WebP
+                                    </small>
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Section: Informasi Barang -->
+                        <h5 class="section-header" style="border-left: 4px solid #4361ee; padding-left: 15px; margin: 30px 0 20px 0; font-weight: 700; color: #2d3748; font-size: 1.2rem;">
+                            <i class="fas fa-box me-2"></i>Informasi Barang
+                        </h5>
+                        
+                        <!-- Baris 1: Nama Barang, Harga Ambil -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="qty" class="form-label">Qty</label>
-                                    <input type="number" class="form-control" id="qty" name="qty" required>
+                                    <label for="nama_barang" class="form-label" style="font-weight: 600; color: #2d3748;">
+                                        <i class="fas fa-tag"></i> Nama Barang *
+                                    </label>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="nama_barang"
+                                           name="nama_barang"
+                                           required
+                                           placeholder="Masukkan nama barang"
+                                           style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
                                 </div>
                             </div>
+
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="gambar" class="form-label">Gambar Barang</label>
-                                    <input type="file" class="form-control" id="gambar" name="gambar" accept="image/*">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="barcode" class="form-label">Barcode</label>
+                                    <label for="harga_ambil" class="form-label" style="font-weight: 600; color: #2d3748;">
+                                        <i class="fas fa-money-bill-wave"></i> Harga Ambil *
+                                    </label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" id="barcode" name="barcode" placeholder="Scan barcode atau ketik manual">
-                                        <button type="button" class="btn btn-outline-secondary" id="scanBarcodeBtn">
+                                        <span class="input-group-text">Rp</span>
+                                        <input type="number"
+                                               class="form-control"
+                                               id="harga_ambil"
+                                               name="harga_ambil"
+                                               min="0"
+                                               step="100"
+                                               required
+                                               placeholder="0"
+                                               style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Section: Stok & Pengaturan -->
+                        <h5 class="section-header" style="border-left: 4px solid #4361ee; padding-left: 15px; margin: 30px 0 20px 0; font-weight: 700; color: #2d3748; font-size: 1.2rem;">
+                            <i class="fas fa-warehouse me-2"></i>Stok & Pengaturan
+                        </h5>
+                        
+                        <!-- Baris 2: Quantity, Max Order, Expired Date -->
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="qty" class="form-label" style="font-weight: 600; color: #2d3748;">
+                                        <i class="fas fa-cubes"></i> Quantity *
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="number" 
+                                               class="form-control" 
+                                               id="qty" 
+                                               name="qty" 
+                                               min="0" 
+                                               required
+                                               placeholder="Jumlah stok"
+                                               style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
+                                        <span class="input-group-text">pcs</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="max_order" class="form-label" style="font-weight: 600; color: #2d3748;">
+                                        <i class="fas fa-shopping-cart"></i> Maximal Order
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="number" 
+                                               class="form-control" 
+                                               id="max_order" 
+                                               name="max_order" 
+                                               min="0" 
+                                               placeholder="0 = tidak terbatas"
+                                               style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
+                                        <span class="input-group-text">pcs</span>
+                                    </div>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle text-muted me-1"></i>
+                                        Maksimal jumlah yang bisa dipesan per transaksi
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="expired_date" class="form-label" style="font-weight: 600; color: #2d3748;">
+                                        <i class="fas fa-calendar-alt"></i> Tanggal Expired
+                                    </label>
+                                    <div class="expired-date-group" style="position: relative;">
+                                        <input type="text" 
+                                               class="form-control flatpickr-input" 
+                                               id="expired_date" 
+                                               name="expired_date" 
+                                               placeholder="Klik untuk memilih tanggal"
+                                               data-input
+                                               autocomplete="off"
+                                               style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px; background-color: white; cursor: pointer; padding-right: 45px;">
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-secondary"
+                                                onclick="clearExpiredDate()">
+                                            <i class="fas fa-times"></i> Hapus
+                                        </button>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-primary"
+                                                onclick="openCalendar()">
+                                            <i class="fas fa-calendar"></i> Buka Kalender
+                                        </button>
+                                    </div>
+                                    <div id="expiredStatus" class="mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Section: Informasi Tambahan -->
+                        <h5 class="section-header" style="border-left: 4px solid #4361ee; padding-left: 15px; margin: 30px 0 20px 0; font-weight: 700; color: #2d3748; font-size: 1.2rem;">
+                            <i class="fas fa-info-circle me-2"></i>Informasi Tambahan
+                        </h5>
+                        
+                        <!-- Baris 3: Barcode, Deskripsi -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="barcode" class="form-label" style="font-weight: 600; color: #2d3748;">
+                                        <i class="fas fa-barcode"></i> Barcode
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text"
+                                               class="form-control"
+                                               id="barcode"
+                                               name="barcode"
+                                               placeholder="Kode barcode (opsional)"
+                                               style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
+                                        <button type="button"
+                                                class="btn btn-outline-secondary"
+                                                id="scanBarcodeBtn">
                                             <i class="fas fa-camera"></i> Scan
                                         </button>
                                     </div>
                                 </div>
                             </div>
+                            
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="supplier" class="form-label">Supplier</label>
-                                    <select class="form-control" id="supplier" name="supplier_id" required>
-                                        <option value="">Pilih Supplier</option>
-                                        <?php
-                                        $supplier_sql = "SELECT id, nama_supplier FROM supplier ORDER BY nama_supplier ASC";
-                                        $supplier_result = $conn->query($supplier_sql);
-                                        while ($supplier = $supplier_result->fetch_assoc()) {
-                                            echo "<option value='" . $supplier['id'] . "'>" . htmlspecialchars($supplier['nama_supplier']) . "</option>";
-                                        }
-                                        ?>
-                                    </select>
+                                    <label for="deskripsi" class="form-label" style="font-weight: 600; color: #2d3748;">
+                                        <i class="fas fa-align-left"></i> Deskripsi
+                                    </label>
+                                    <textarea class="form-control"
+                                              id="deskripsi"
+                                              name="deskripsi"
+                                              rows="2"
+                                              placeholder="Deskripsi barang (opsional)"
+                                              style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;"></textarea>
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Section: Pemasok -->
+                        <h5 class="section-header" style="border-left: 4px solid #4361ee; padding-left: 15px; margin: 30px 0 20px 0; font-weight: 700; color: #2d3748; font-size: 1.2rem;">
+                            <i class="fas fa-truck me-2"></i>Informasi Pemasok
+                        </h5>
+                        
+                        <!-- Baris 4: Supplier, Sales -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="sales" class="form-label">Sales</label>
-                                    <select class="form-control" id="sales" name="sales_id" required>
-                                        <option value="">Pilih Supplier</option>
-                                    </select>
+                                    <label for="supplier_id" class="form-label" style="font-weight: 600; color: #2d3748;">
+                                        <i class="fas fa-industry"></i> Supplier *
+                                    </label>
+                                    <div class="input-group">
+                                        <select class="form-control" 
+                                                id="supplier_id" 
+                                                name="supplier_id" 
+                                                required
+                                                style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
+                                            <option value="">Pilih Supplier...</option>
+                                            <?php 
+                                            $supplier_result->data_seek(0); // Reset pointer
+                                            while($supplier = $supplier_result->fetch_assoc()): 
+                                            ?>
+                                                <option value="<?php echo $supplier['id']; ?>">
+                                                    <?php echo htmlspecialchars($supplier['nama_supplier']); ?>
+                                                </option>
+                                            <?php endwhile; ?>
+                                        </select>
+                                        <button class="btn btn-outline-primary" 
+                                                type="button" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modalTambahSupplier">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="sales_id" class="form-label" style="font-weight: 600; color: #2d3748;">
+                                        <i class="fas fa-user-tie"></i> Sales *
+                                    </label>
+                                    <div class="input-group">
+                                        <select class="form-control" 
+                                                id="sales_id" 
+                                                name="sales_id" 
+                                                required
+                                                style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 15px;">
+                                            <option value="">Pilih Supplier terlebih dahulu</option>
+                                        </select>
+                                        <button class="btn btn-outline-primary" 
+                                                type="button" 
+                                                id="btnTambahSalesQuick">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Tambah Barang</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i> Batal
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="submitTambahBtn">
+                            <i class="fas fa-plus-circle me-1"></i> Tambah Barang
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Modal Konfirmasi Hapus -->
-    <div class="modal fade" id="hapusModal" tabindex="-1" aria-labelledby="hapusModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+    <br><br><br>
+    <!-- Modal Tambah Supplier -->
+    <div class="modal fade" id="modalTambahSupplier" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="hapusModalLabel">Konfirmasi Hapus</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h6 class="modal-title">Tambah Supplier Baru</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    Apakah Anda yakin ingin menghapus barang "<span id="namaBarangHapus"></span>"?
+                    <input type="text" 
+                           id="nama_supplier_baru" 
+                           class="form-control" 
+                           placeholder="Nama Supplier"
+                           style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 10px;">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-danger" id="konfirmasiHapus">Hapus</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="simpanSupplierCepat">Simpan</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Function to change quantity
-        function changeQty(button, delta) {
-            var input = button.parentElement.querySelector('.qty-input');
-            var currentValue = parseInt(input.value);
-            var maxValue = parseInt(input.max);
-            var newValue = currentValue + delta;
+    <!-- Modal Tambah Sales -->
+    <div class="modal fade" id="modalTambahSales" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">Tambah Sales Baru</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" 
+                           id="nama_sales_baru" 
+                           class="form-control" 
+                           placeholder="Nama Sales"
+                           style="border: 2px solid #e2e8f0; border-radius: 10px; padding: 10px;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="simpanSalesCepat">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            if (newValue >= 0 && newValue <= maxValue) {
-                input.value = newValue;
+    <!-- Scanner Container (akan dibuat dinamis) -->
+    <div id="scannerContainer" style="display: none;"></div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Flatpickr JS untuk kalender -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/id.js"></script>
+    
+    <!-- QuaggaJS untuk barcode scanner -->
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    
+    <script>
+        // Variabel global
+        let expiredDatePicker;
+        let scanning = false;
+        let quaggaInitialized = false;
+        
+        // Inisialisasi saat halaman load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inisialisasi Flatpickr untuk kalender modern
+            expiredDatePicker = flatpickr("#expired_date", {
+                dateFormat: "Y-m-d",
+                locale: "id",
+                minDate: "today",
+                disableMobile: false,
+                allowInput: true,
+                clickOpens: true,
+                theme: "material_blue",
+                enableTime: false,
+                altFormat: "j F Y",
+                ariaDateFormat: "j F Y",
+                mode: "single",
+                onChange: function(selectedDates, dateStr, instance) {
+                    updateExpiredStatus(dateStr);
+                }
+            });
+            
+            // Setup fungsi-fungsi
+            setupEventListeners();
+            setupRealTimeSearch();
+            updateTotalSelected();
+            
+            // Check for URL messages
+            checkUrlMessages();
+        });
+        
+        // Check for success/error messages in URL
+        function checkUrlMessages() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorMessage = urlParams.get('error');
+            const successMessage = urlParams.get('success');
+            
+            if (errorMessage) {
+                showToast(decodeURIComponent(errorMessage), 'error');
+                // Remove error from URL
+                removeParamFromUrl('error');
+            }
+            
+            if (successMessage) {
+                showToast(decodeURIComponent(successMessage), 'success');
+                // Remove success from URL
+                removeParamFromUrl('success');
             }
         }
+        
+        // Remove parameter from URL
+        function removeParamFromUrl(param) {
+            const url = new URL(window.location);
+            url.searchParams.delete(param);
+            window.history.replaceState({}, '', url);
+        }
+        
+        // Setup semua event listeners
+        function setupEventListeners() {
+            // Gambar preview
+            document.getElementById('gambarInput').addEventListener('change', handleImageUpload);
+            
+            // Supplier change untuk load sales
+            document.getElementById('supplier_id').addEventListener('change', loadSalesBySupplier);
+            
+            // Barcode scanner button
+            document.getElementById('scanBarcodeBtn').addEventListener('click', toggleBarcodeScanner);
+            
+            // Simpan supplier cepat
+            document.getElementById('simpanSupplierCepat').addEventListener('click', simpanSupplierCepat);
+            
+            // Simpan sales cepat
+            document.getElementById('simpanSalesCepat').addEventListener('click', simpanSalesCepat);
+            
+            // Tombol tambah sales quick
+            document.getElementById('btnTambahSalesQuick').addEventListener('click', function() {
+                const supplierId = document.getElementById('supplier_id').value;
+                if (!supplierId) {
+                    showToast('Silakan pilih supplier terlebih dahulu!', 'warning');
+                    return;
+                }
+                const modalSales = new bootstrap.Modal(document.getElementById('modalTambahSales'));
+                modalSales.show();
+                document.getElementById('nama_sales_baru').focus();
+            });
+            
+            // Floating add button
+            document.querySelector('.floating-add-btn').addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('tambahBarangModal'));
+                modal.show();
+            });
 
-        // Real-time search functionality with AJAX
-        let searchTimeout;
-        document.getElementById('searchInput').addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                performSearch(this.value);
-            }, 300); // Debounce search
-        });
-
-        // Clear search functionality
-        document.getElementById('clearSearchBtn').addEventListener('click', function() {
-            document.getElementById('searchInput').value = '';
-            performSearch('');
-        });
-
+            // Form validation untuk tambah barang
+            document.getElementById('tambahBarangForm').addEventListener('submit', validateTambahBarangForm);
+            
+            // Form validation untuk ambil barang
+            document.getElementById('ambilBarangForm').addEventListener('submit', validateAmbilBarangForm);
+            
+            // Quantity input change events
+            document.querySelectorAll('.qty-input').forEach(input => {
+                input.addEventListener('change', updateTotalSelected);
+            });
+        }
+        
+        // Setup real-time search
+        function setupRealTimeSearch() {
+            let searchTimeout;
+            document.getElementById('searchInput').addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    performSearch(this.value);
+                }, 300);
+            });
+        }
+        
+        // Fungsi untuk change quantity
+        function changeQty(button, delta) {
+            const input = button.parentElement.querySelector('.qty-input');
+            const currentValue = parseInt(input.value);
+            const maxValue = parseInt(input.max);
+            const newValue = currentValue + delta;
+            
+            if (newValue >= 0 && newValue <= maxValue) {
+                input.value = newValue;
+                updateTotalSelected();
+                showToast(`Quantity diubah: ${newValue}`, 'info');
+            }
+        }
+        
+        // Update total barang yang dipilih
+        function updateTotalSelected() {
+            let total = 0;
+            document.querySelectorAll('.qty-input').forEach(input => {
+                total += parseInt(input.value) || 0;
+            });
+            document.getElementById('totalSelected').textContent = total;
+        }
+        
+        // Real-time search
         function performSearch(searchTerm) {
             const barangList = document.getElementById('barangList');
-
-            fetch(`?path=get_barang_pecahon.php?search=${encodeURIComponent(searchTerm)}`)
+            
+            showLoading(true);
+            
+            fetch(`?path=search_barang_pecahon&search=${encodeURIComponent(searchTerm)}`)
                 .then(response => response.json())
                 .then(data => {
+                    showLoading(false);
+                    
                     if (data.length > 0) {
-                        const html = data.map(barang => `
-                            <div class="list-group-item d-flex justify-content-between align-items-center barang-item">
-                                <div class="d-flex align-items-center">
-                                    <img src="uploads/barang/${barang.gambar || 'default.jpg'}" alt="Gambar Barang" style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px;">
-                                    <div>
-                                        <h6 class="mb-1">${barang.nama_barang}</h6>
-                                        <small>Qty: ${barang.qty} | Harga: Rp ${new Intl.NumberFormat('id-ID').format(barang.harga_ambil)} | Barcode: ${barang.barcode || '-'}</small>
+                        const html = data.map(barang => {
+                            // Tentukan status stok
+                            let stock_class = '';
+                            if (barang.qty <= 10) stock_class = 'low';
+                            else if (barang.qty <= 50) stock_class = 'medium';
+                            else stock_class = 'high';
+                            
+                            // Format expired date
+                            let expired_text = '';
+                            if (barang.expired_date && barang.expired_date !== '0000-00-00') {
+                                const expDate = new Date(barang.expired_date);
+                                const today = new Date();
+                                const diff = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+                                
+                                if (expDate < today) {
+                                    expired_text = '<span class="badge bg-danger ms-2">Expired</span>';
+                                } else if (diff <= 7) {
+                                    expired_text = '<span class="badge bg-warning ms-2">Akan Expired</span>';
+                                }
+                            }
+                            
+                            return `
+                                <div class="list-group-item d-flex justify-content-between align-items-center barang-item" 
+                                     data-id="${barang.id}" 
+                                     data-nama="${barang.nama_barang}"
+                                     data-barcode="${barang.barcode || ''}">
+                                    
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img src="../../uploads/barang/${barang.gambar || 'default.jpg'}" 
+                                             alt="Gambar Barang" 
+                                             class="barang-image"
+                                             onerror="this.src='../../uploads/barang/default.jpg'">
+                                        
+                                        <div class="barang-details">
+                                            <h6 class="mb-1">
+                                                ${barang.nama_barang}
+                                                ${barang.max_order > 0 ? 
+                                                    `<small class="text-muted ms-2">
+                                                        <i class="fas fa-shopping-cart"></i> Max: ${barang.max_order}
+                                                    </small>` : ''}
+                                                ${expired_text}
+                                            </h6>
+                                            
+                                            <div class="d-flex flex-wrap gap-3">
+                                                <small>
+                                                    <i class="fas fa-cubes me-1"></i>
+                                                    <span class="badge badge-stock ${stock_class}">
+                                                        ${barang.qty} pcs
+                                                    </span>
+                                                </small>
+                                                
+                                                <small>
+                                                    <i class="fas fa-money-bill-wave me-1"></i>
+                                                    Rp ${parseInt(barang.harga_ambil).toLocaleString('id-ID')}
+                                                </small>
+                                                
+                                                ${barang.barcode ? `
+                                                <small>
+                                                    <i class="fas fa-barcode me-1"></i>
+                                                    ${barang.barcode}
+                                                </small>` : ''}
+                                                
+                                                ${barang.expired_date && barang.expired_date !== '0000-00-00' ? `
+                                                <small>
+                                                    <i class="fas fa-calendar-alt me-1"></i>
+                                                    Exp: ${new Date(barang.expired_date).toLocaleDateString('id-ID')}
+                                                </small>` : ''}
+                                            </div>
+                                            
+                                            <!-- Supplier & Sales Info -->
+                                            <div class="supplier-info mt-2">
+                                                ${barang.nama_supplier ? `
+                                                <span class="me-3">
+                                                    <i class="fas fa-industry"></i>
+                                                    ${barang.nama_supplier}
+                                                </span>` : ''}
+                                                
+                                                ${barang.nama_sales ? `
+                                                <span>
+                                                    <i class="fas fa-user-tie"></i>
+                                                    ${barang.nama_sales}
+                                                </span>` : ''}
+                                            </div>
+                                            
+                                            ${barang.deskripsi ? `
+                                            <small class="d-block mt-2 text-muted">
+                                                <i class="fas fa-align-left me-1"></i>
+                                                ${barang.deskripsi.substring(0, 100)}${barang.deskripsi.length > 100 ? '...' : ''}
+                                            </small>` : ''}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex align-items-center gap-2">
+                                        <a href="?path=edit_barang_pecahon&id=${barang.id}" 
+                                           class="btn btn-action btn-warning" 
+                                           title="Edit Barang">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        
+                                        <button type="button" 
+                                                class="btn btn-action btn-danger" 
+                                                title="Hapus Barang"
+                                                onclick="showDeleteModal(${barang.id}, '${barang.nama_barang.replace(/'/g, "\\'")}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        
+                                        <div class="qty-controls">
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-secondary" 
+                                                    onclick="changeQty(this, -1)">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            
+                                            <input type="number" 
+                                                   name="ambil[${barang.id}]" 
+                                                   value="0" 
+                                                   min="0" 
+                                                   max="${barang.qty}" 
+                                                   class="form-control form-control-sm qty-input" 
+                                                   readonly>
+                                            
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-secondary" 
+                                                    onclick="changeQty(this, 1)">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="d-flex align-items-center">
-                                    <a href="edit_barang_pecahon.php?id=${barang.id}" class="btn btn-sm btn-warning me-2">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeQty(this, -1)">-</button>
-                                    <input type="number" name="ambil[${barang.id}]" value="0" min="0" max="${barang.qty}" class="form-control form-control-sm mx-2 qty-input" style="width: 60px;" readonly>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeQty(this, 1)">+</button>
-                                </div>
-                            </div>
-                        `).join('');
+                            `;
+                        }).join('');
+                        
                         barangList.innerHTML = html;
+                        updateTotalSelected();
                     } else {
-                        barangList.innerHTML = '<div class="alert alert-info" role="alert">Tidak ada barang yang ditemukan.</div>';
+                        barangList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-search"></i>
+                                <h4>Tidak ada barang yang ditemukan</h4>
+                                <p>Tidak ada barang yang sesuai dengan pencarian "${searchTerm}"</p>
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()">
+                                    <i class="fas fa-times me-2"></i>Hapus Pencarian
+                                </button>
+                            </div>
+                        `;
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    showLoading(false);
                     barangList.innerHTML = '<div class="alert alert-danger" role="alert">Terjadi kesalahan saat mencari barang.</div>';
                 });
         }
-
-
-
-        // Reset form when modal is shown
-        document.getElementById('tambahBarangModal').addEventListener('show.bs.modal', function() {
-            document.getElementById('sales').innerHTML = '<option value="">Pilih Supplier terlebih dahulu</option>';
-        });
-
-        // Supplier change event to load sales
-        document.getElementById('supplier').addEventListener('change', function() {
+        
+        // Clear search
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            performSearch('');
+        }
+        
+        // Update expired status
+        function updateExpiredStatus(dateStr) {
+            const statusDiv = document.getElementById('expiredStatus');
+            
+            if (!dateStr) {
+                statusDiv.innerHTML = '';
+                return;
+            }
+            
+            const today = new Date();
+            const expiredDate = new Date(dateStr);
+            const diffTime = expiredDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            let statusHtml = '';
+            let icon = '';
+            
+            if (diffDays < 0) {
+                icon = '<i class="fas fa-exclamation-triangle"></i>';
+                statusHtml = `<div class="alert alert-danger alert-sm p-2">
+                    ${icon} SUDAH EXPIRED (${Math.abs(diffDays)} hari yang lalu)
+                </div>`;
+            } else if (diffDays === 0) {
+                icon = '<i class="fas fa-exclamation-circle"></i>';
+                statusHtml = `<div class="alert alert-warning alert-sm p-2">
+                    ${icon} EXPIRED HARI INI
+                </div>`;
+            } else if (diffDays <= 7) {
+                icon = '<i class="fas fa-clock"></i>';
+                statusHtml = `<div class="alert alert-warning alert-sm p-2">
+                    ${icon} Akan expired dalam ${diffDays} hari
+                </div>`;
+            } else if (diffDays <= 30) {
+                icon = '<i class="fas fa-calendar-week"></i>';
+                statusHtml = `<div class="alert alert-info alert-sm p-2">
+                    ${icon} Akan expired dalam ${diffDays} hari
+                </div>`;
+            } else {
+                icon = '<i class="fas fa-check-circle"></i>';
+                statusHtml = `<div class="alert alert-success alert-sm p-2">
+                    ${icon} Masih ${diffDays} hari lagi
+                </div>`;
+            }
+            
+            statusDiv.innerHTML = statusHtml;
+        }
+        
+        // Buka kalender
+        function openCalendar() {
+            expiredDatePicker.open();
+        }
+        
+        // Hapus tanggal expired
+        function clearExpiredDate() {
+            expiredDatePicker.clear();
+            document.getElementById('expiredStatus').innerHTML = '';
+            showToast('Tanggal expired telah dihapus', 'info');
+        }
+        
+        // Handle upload gambar
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validasi ukuran file
+                if (file.size > 5 * 1024 * 1024) {
+                    showToast('Ukuran file terlalu besar. Maksimal 5MB', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Validasi tipe file
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                if (!allowedTypes.includes(file.type)) {
+                    showToast('Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Preview gambar
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('gambarPreview');
+                    preview.src = e.target.result;
+                    showToast('Gambar berhasil dipilih', 'success');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Reset gambar ke default
+        function resetGambar() {
+            document.getElementById('gambarPreview').src = '../../uploads/barang/default.jpg';
+            document.getElementById('gambarInput').value = '';
+            showToast('Gambar telah direset ke default', 'info');
+        }
+        
+        // Load sales berdasarkan supplier
+        function loadSalesBySupplier() {
             const supplierId = this.value;
-            const salesSelect = document.getElementById('sales');
-
-            if (supplierId) {
-                fetch(`?path=get_sales.php?supplier_id=${supplierId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        salesSelect.innerHTML = '<option value="">Pilih Sales</option>';
-                        data.forEach(sales => {
-                            salesSelect.innerHTML += `<option value="${sales.id}">${sales.nama_sales}</option>`;
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error loading sales:', error);
-                        salesSelect.innerHTML = '<option value="">Error loading sales</option>';
-                    });
-            } else {
+            const salesSelect = document.getElementById('sales_id');
+            
+            if (!supplierId) {
                 salesSelect.innerHTML = '<option value="">Pilih Supplier terlebih dahulu</option>';
+                salesSelect.disabled = false;
+                return;
             }
-        });
-
-        // Barcode scanning functionality
-        let scanning = false;
-        document.getElementById('scanBarcodeBtn').addEventListener('click', function() {
-            if (scanning) {
-                Quagga.stop();
-                scanning = false;
-                this.innerHTML = '<i class="fas fa-camera"></i> Scan';
-                this.classList.remove('btn-danger');
-                this.classList.add('btn-outline-secondary');
-            } else {
-                startBarcodeScan();
-                scanning = true;
-                this.innerHTML = '<i class="fas fa-stop"></i> Stop';
-                this.classList.remove('btn-outline-secondary');
-                this.classList.add('btn-danger');
-            }
-        });
-
-        function startBarcodeScan() {
-            // Create scanner container if it doesn't exist
-            if (!document.getElementById('scanner-container')) {
-                const scannerDiv = document.createElement('div');
-                scannerDiv.id = 'scanner-container';
-                scannerDiv.style.position = 'fixed';
-                scannerDiv.style.top = '50%';
-                scannerDiv.style.left = '50%';
-                scannerDiv.style.transform = 'translate(-50%, -50%)';
-                scannerDiv.style.zIndex = '9999';
-                scannerDiv.style.background = 'white';
-                scannerDiv.style.padding = '20px';
-                scannerDiv.style.borderRadius = '10px';
-                scannerDiv.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
-                scannerDiv.innerHTML = '<div id="interactive" class="viewport"></div><button id="closeScanner" class="btn btn-secondary mt-2">Tutup</button>';
-                document.body.appendChild(scannerDiv);
-
-                document.getElementById('closeScanner').addEventListener('click', function() {
-                    Quagga.stop();
-                    document.body.removeChild(scannerDiv);
-                    scanning = false;
-                    document.getElementById('scanBarcodeBtn').innerHTML = '<i class="fas fa-camera"></i> Scan';
-                    document.getElementById('scanBarcodeBtn').classList.remove('btn-danger');
-                    document.getElementById('scanBarcodeBtn').classList.add('btn-outline-secondary');
+            
+            salesSelect.innerHTML = '<option value="">Memuat sales...</option>';
+            salesSelect.disabled = true;
+            
+            fetch(`?path=get_sales&supplier_id=${supplierId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    salesSelect.innerHTML = '<option value="">Pilih Sales...</option>';
+                    salesSelect.disabled = false;
+                    
+                    if (data && data.length > 0) {
+                        data.forEach(sales => {
+                            const option = document.createElement('option');
+                            option.value = sales.id;
+                            option.textContent = sales.nama_sales;
+                            salesSelect.appendChild(option);
+                        });
+                        showToast(`${data.length} sales ditemukan`, 'success');
+                    } else {
+                        salesSelect.innerHTML = '<option value="">Tidak ada sales untuk supplier ini</option>';
+                        showToast('Tidak ada sales ditemukan', 'warning');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    salesSelect.innerHTML = '<option value="">Error loading sales</option>';
+                    salesSelect.disabled = false;
+                    showToast('Gagal memuat data sales', 'error');
                 });
+        }
+        
+        // Toggle barcode scanner
+        function toggleBarcodeScanner() {
+            if (scanning) {
+                stopBarcodeScanner();
+            } else {
+                startBarcodeScanner();
             }
-
+        }
+        
+        // Start barcode scanner
+        function startBarcodeScanner() {
+            // Create scanner modal
+            const scannerHtml = `
+                <div class="modal fade" id="scannerModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h6 class="modal-title">Scan Barcode</h6>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="stopBarcodeScanner()"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <div id="interactive" style="width: 100%; height: 300px; border: 2px dashed #ddd;"></div>
+                                <p class="mt-3 text-muted">Arahkan kamera ke barcode</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="stopBarcodeScanner()">Tutup</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('scannerContainer').innerHTML = scannerHtml;
+            
+            // Show modal
+            const scannerModal = new bootstrap.Modal(document.getElementById('scannerModal'));
+            scannerModal.show();
+            
+            // Initialize Quagga
             Quagga.init({
                 inputStream: {
                     name: "Live",
@@ -477,144 +1493,341 @@ $barang_result = $barang_stmt->get_result();
                         facingMode: "environment"
                     }
                 },
-                locator: {
-                    patchSize: "medium",
-                    halfSample: true
-                },
-                numOfWorkers: 2,
                 decoder: {
                     readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "upc_reader", "upc_e_reader"]
-                },
-                locate: true
+                }
             }, function(err) {
                 if (err) {
-                    console.log(err);
+                    console.error(err);
+                    showToast('Gagal mengakses kamera', 'error');
+                    scannerModal.hide();
+                    stopBarcodeScanner();
                     return;
                 }
                 Quagga.start();
+                scanning = true;
+                quaggaInitialized = true;
+                
+                // Update button
+                document.getElementById('scanBarcodeBtn').innerHTML = '<i class="fas fa-stop"></i> Stop';
+                document.getElementById('scanBarcodeBtn').classList.remove('btn-outline-secondary');
+                document.getElementById('scanBarcodeBtn').classList.add('btn-danger');
             });
-
+            
+            // Handle barcode detection
             Quagga.onDetected(function(result) {
-                var code = result.codeResult.code;
+                const code = result.codeResult.code;
                 document.getElementById('barcode').value = code;
+                showToast(`Barcode berhasil dipindai: ${code}`, 'success');
+                stopBarcodeScanner();
+                scannerModal.hide();
+            });
+        }
+        
+        // Stop barcode scanner
+        function stopBarcodeScanner() {
+            if (quaggaInitialized) {
                 Quagga.stop();
-                document.body.removeChild(document.getElementById('scanner-container'));
-                scanning = false;
-                document.getElementById('scanBarcodeBtn').innerHTML = '<i class="fas fa-camera"></i> Scan';
-                document.getElementById('scanBarcodeBtn').classList.remove('btn-danger');
-                document.getElementById('scanBarcodeBtn').classList.add('btn-outline-secondary');
-                alert('Barcode berhasil dipindai: ' + code);
-            });
-        }
-
-        // Long-press delete functionality
-        let longPressTimer;
-        let isLongPress = false;
-        let currentItem = null;
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const barangItems = document.querySelectorAll('.barang-item');
-
-            barangItems.forEach(item => {
-                // Touch events for mobile
-                item.addEventListener('touchstart', function(e) {
-                    isLongPress = false;
-                    currentItem = this;
-                    longPressTimer = setTimeout(() => {
-                        isLongPress = true;
-                        showDeleteModal(this);
-                    }, 500); // 500ms for long press
-                });
-
-                item.addEventListener('touchend', function(e) {
-                    clearTimeout(longPressTimer);
-                    if (!isLongPress) {
-                        // Normal tap - you can add other functionality here if needed
-                    }
-                });
-
-                item.addEventListener('touchmove', function(e) {
-                    clearTimeout(longPressTimer);
-                });
-
-                // Mouse events for desktop
-                item.addEventListener('mousedown', function(e) {
-                    isLongPress = false;
-                    currentItem = this;
-                    longPressTimer = setTimeout(() => {
-                        isLongPress = true;
-                        showDeleteModal(this);
-                    }, 500);
-                });
-
-                item.addEventListener('mouseup', function(e) {
-                    clearTimeout(longPressTimer);
-                    if (!isLongPress) {
-                        // Normal click - you can add other functionality here if needed
-                    }
-                });
-
-                item.addEventListener('mousemove', function(e) {
-                    clearTimeout(longPressTimer);
-                });
-            });
-        });
-
-        function showDeleteModal(idOrItem, namaBarang) {
-            let id, nama, itemElement;
-
-            if (typeof idOrItem === 'object') {
-                // Called from long-press with item element
-                itemElement = idOrItem;
-                id = itemElement.getAttribute('data-id');
-                nama = itemElement.getAttribute('data-nama');
-            } else {
-                // Called from button click with id and nama parameters
-                id = idOrItem;
-                nama = namaBarang;
-                // Find the item element by data-id
-                itemElement = document.querySelector(`.barang-item[data-id="${id}"]`);
+                quaggaInitialized = false;
             }
-
-            document.getElementById('namaBarangHapus').textContent = nama;
-
-            const hapusModal = new bootstrap.Modal(document.getElementById('hapusModal'));
-            hapusModal.show();
-
-            // Handle delete confirmation
-            document.getElementById('konfirmasiHapus').onclick = function() {
-                deleteBarang(id, itemElement);
-                hapusModal.hide();
-            };
+            scanning = false;
+            
+            // Update button
+            const scanBtn = document.getElementById('scanBarcodeBtn');
+            if (scanBtn) {
+                scanBtn.innerHTML = '<i class="fas fa-camera"></i> Scan';
+                scanBtn.classList.remove('btn-danger');
+                scanBtn.classList.add('btn-outline-secondary');
+            }
+            
+            // Remove modal
+            const scannerModal = document.getElementById('scannerModal');
+            if (scannerModal) {
+                scannerModal.remove();
+            }
         }
+        
+        // Show delete modal
+        function showDeleteModal(barangId, barangNama) {
+            const modalHtml = `
+                <div class="modal fade" id="deleteModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Konfirmasi Hapus</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="text-center mb-4">
+                                    <i class="fas fa-trash-alt fa-3x text-danger"></i>
+                                </div>
+                                <p class="text-center">Apakah Anda yakin ingin menghapus barang ini?</p>
+                                <h6 class="text-center mb-3">"${barangNama}"</h6>
+                                <p class="text-muted text-center small">Tindakan ini tidak dapat dibatalkan.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Hapus</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
 
-        function deleteBarang(id, itemElement) {
-            fetch('?path=hapus_barang_pecahon.php', {
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+
+            document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+                // Create a form to submit POST request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '?path=hapus_barang_pecahon';
+                form.style.display = 'none';
+
+                // Add id as hidden input
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'id';
+                idInput.value = barangId;
+                form.appendChild(idInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            });
+
+            document.getElementById('deleteModal').addEventListener('hidden.bs.modal', function() {
+                document.getElementById('deleteModal').remove();
+            });
+        }
+        
+        // Simpan supplier cepat
+        function simpanSupplierCepat() {
+            const nama = document.getElementById('nama_supplier_baru').value.trim();
+            if (!nama) {
+                showToast('Nama supplier harus diisi', 'warning');
+                return;
+            }
+            
+            showLoading(true);
+            
+            fetch('?path=tambah_supplier_ajax', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'id=' + id
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'nama_supplier=' + encodeURIComponent(nama)
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
-                if (data.success) {
-                    // Remove the item from the list
-                    itemElement.remove();
-                    alert('Barang berhasil dihapus!');
+                showLoading(false);
+                
+                if(data.success) {
+                    const opt = new Option(nama, data.id);
+                    document.getElementById('supplier_id').add(opt);
+                    document.getElementById('supplier_id').value = data.id;
+                    
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('modalTambahSupplier')).hide();
+                    document.getElementById('nama_supplier_baru').value = '';
+                    
+                    // Show success message
+                    showToast('Supplier berhasil ditambahkan', 'success');
+                    
+                    // Auto open sales modal
+                    setTimeout(() => {
+                        const modalSales = new bootstrap.Modal(document.getElementById('modalTambahSales'));
+                        modalSales.show();
+                        document.getElementById('nama_sales_baru').focus();
+                    }, 300);
                 } else {
-                    alert('Gagal menghapus barang: ' + data.message);
+                    showToast(data.message || 'Gagal menambahkan supplier', 'error');
                 }
             })
             .catch(error => {
+                showLoading(false);
+                showToast('Terjadi kesalahan', 'error');
                 console.error('Error:', error);
-                alert('Terjadi kesalahan saat menghapus barang');
             });
+        }
+        
+        // Simpan sales cepat
+        function simpanSalesCepat() {
+            const nama = document.getElementById('nama_sales_baru').value.trim();
+            const supplierId = document.getElementById('supplier_id').value;
+            
+            if (!nama) {
+                showToast('Nama sales harus diisi', 'warning');
+                return;
+            }
+            
+            if (!supplierId) {
+                showToast('Silakan pilih supplier terlebih dahulu', 'warning');
+                return;
+            }
+            
+            showLoading(true);
+            
+            fetch('?path=tambah_sales_ajax', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `nama_sales=${encodeURIComponent(nama)}&supplier_id=${supplierId}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                showLoading(false);
+                
+                if(data.success) {
+                    const opt = new Option(nama, data.id);
+                    document.getElementById('sales_id').add(opt);
+                    document.getElementById('sales_id').value = data.id;
+                    
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('modalTambahSales')).hide();
+                    document.getElementById('nama_sales_baru').value = '';
+                    
+                    // Show success message
+                    showToast('Sales berhasil ditambahkan', 'success');
+                } else {
+                    showToast(data.message || 'Gagal menambahkan sales', 'error');
+                }
+            })
+            .catch(error => {
+                showLoading(false);
+                showToast('Terjadi kesalahan', 'error');
+                console.error('Error:', error);
+            });
+        }
+        
+        // Validasi form tambah barang
+        function validateTambahBarangForm(e) {
+            e.preventDefault();
+
+            const hargaAmbil = parseFloat(document.getElementById('harga_ambil').value);
+            const qty = parseInt(document.getElementById('qty').value);
+            const maxOrder = parseInt(document.getElementById('max_order').value);
+            const supplier = document.getElementById('supplier_id').value;
+            const sales = document.getElementById('sales_id').value;
+
+            // Validasi harga
+            if (hargaAmbil <= 0) {
+                showToast('Harga ambil harus lebih dari 0', 'error');
+                document.getElementById('harga_ambil').focus();
+                return;
+            }
+            
+            // Validasi quantity
+            if (qty < 0) {
+                showToast('Quantity tidak boleh negatif', 'error');
+                document.getElementById('qty').focus();
+                return;
+            }
+            
+            // Validasi max order
+            if (maxOrder < 0) {
+                showToast('Maximal order tidak boleh negatif', 'error');
+                document.getElementById('max_order').focus();
+                return;
+            }
+            
+            if (maxOrder > 0 && maxOrder > qty) {
+                showToast('Maximal order tidak boleh lebih besar dari quantity tersedia', 'error');
+                document.getElementById('max_order').focus();
+                return;
+            }
+            
+            // Validasi supplier dan sales
+            if (!supplier) {
+                showToast('Silakan pilih supplier', 'error');
+                document.getElementById('supplier_id').focus();
+                return;
+            }
+            
+            if (!sales) {
+                showToast('Silakan pilih sales', 'error');
+                document.getElementById('sales_id').focus();
+                return;
+            }
+            
+            // Tampilkan loading dan submit form
+            showLoading(true);
+            document.getElementById('submitTambahBtn').innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...';
+            document.getElementById('submitTambahBtn').disabled = true;
+            
+            setTimeout(() => {
+                e.target.submit();
+            }, 1000);
+        }
+        
+        // Validasi form ambil barang
+        function validateAmbilBarangForm(e) {
+            let totalSelected = 0;
+            let hasSelected = false;
+            
+            document.querySelectorAll('.qty-input').forEach(input => {
+                const qty = parseInt(input.value) || 0;
+                totalSelected += qty;
+                if (qty > 0) hasSelected = true;
+            });
+            
+            if (!hasSelected) {
+                e.preventDefault();
+                showToast('Silakan pilih setidaknya satu barang dengan quantity lebih dari 0', 'warning');
+                return;
+            }
+            
+            // Tampilkan loading
+            showLoading(true);
+            document.getElementById('submitAmbilBtn').innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Memproses...';
+            document.getElementById('submitAmbilBtn').disabled = true;
+        }
+        
+        // Fungsi untuk menampilkan toast notification
+        function showToast(message, type = 'info') {
+            const toastId = 'toast-' + Date.now();
+            const toastColor = type === 'success' ? 'success' : 
+                              type === 'error' ? 'danger' : 
+                              type === 'warning' ? 'warning' : 'primary';
+            
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center text-white bg-${toastColor} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                            type === 'error' ? 'exclamation-circle' : 
+                                            type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            const toastContainer = document.querySelector('.toast-container');
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            
+            const toastEl = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastEl, {
+                autohide: true,
+                delay: 3000
+            });
+            
+            toast.show();
+            
+            toastEl.addEventListener('hidden.bs.toast', function() {
+                toastEl.remove();
+            });
+        }
+        
+        // Tampilkan/menyembunyikan loading
+        function showLoading(show) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = show ? 'flex' : 'none';
         }
     </script>
 </body>
 </html>
 
 <?php
+// Tutup koneksi
 $conn->close();
 ?>

@@ -26,6 +26,7 @@ $result = $conn->query($sql);
             --color-text-light: #ffffff;
             --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.1);
             --shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.2);
+            --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         body {
@@ -91,19 +92,30 @@ $result = $conn->query($sql);
             box-shadow: 0 0 8px rgba(67, 112, 87, 0.5); /* Shadow lebih lembut */
         }
         
-        /* --- Card Sektor Styling (Elegan) --- */
+        /* --- Card Sektor Styling (Elegan & Modern) --- */
+        .sektor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* CSS Grid untuk layout modern */
+            gap: 20px; /* Jarak antar card */
+            margin-top: 20px;
+        }
+
         .card {
+            position: relative; /* Untuk posisi tombol hapus */
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Transisi lebih smooth dengan easing */
             border: none;
-            border-radius: 12px;
+            border-radius: 16px; /* Lebih bulat untuk modern */
             overflow: hidden;
-            box-shadow: var(--shadow-subtle);
+            box-shadow: var(--shadow-subtle), var(--shadow-inset);
+            backdrop-filter: blur(10px); /* Efek glassmorphism ringan */
+            background: rgba(255, 255, 255, 0.9); /* Semi-transparan */
         }
 
         .card:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: var(--shadow-hover);
+            transform: translateY(-8px) scale(1.03); /* Lebih dramatis */
+            box-shadow: var(--shadow-hover), var(--shadow-inset);
+            backdrop-filter: blur(15px); /* Lebih blur saat hover */
         }
         
         .card-title {
@@ -112,6 +124,32 @@ $result = $conn->query($sql);
             border-bottom: 3px solid var(--color-accent);
             padding-bottom: 5px;
             margin-bottom: 10px;
+        }
+
+        /* --- Tombol Hapus (Diperbarui: Selalu Muncul, Posisi Kanan Bawah) --- */
+        .delete-btn {
+            position: absolute;
+            bottom: 10px; /* Pindah ke bawah */
+            right: 10px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: rgba(220, 53, 69, 0.8); /* Merah transparan */
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .delete-btn:hover {
+            background-color: #dc3545; /* Merah solid */
+            transform: scale(1.1) rotate(10deg); /* Efek scale dan rotate */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
         /* --- Floating Action Button (FAB) untuk Tambah Sektor --- */
@@ -130,15 +168,23 @@ $result = $conn->query($sql);
             box-shadow: var(--shadow-hover);
             background-color: var(--color-accent); 
             border: none;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         #tambahSektorFab:hover {
             transform: scale(1.1);
             background-color: #B58D39; 
+            box-shadow: 0 10px 25px rgba(200, 153, 63, 0.4);
         }
         
-        /* --- Responsivitas --- */
+        /* --- Responsivitas (Diperbarui untuk Tablet dan Mobile) --- */
+        @media (max-width: 991.98px) and (min-width: 768px) { /* Tablet */
+            .sektor-grid {
+                grid-template-columns: repeat(2, 1fr); /* 2 kolom di tablet */
+                gap: 15px;
+            }
+        }
+
         @media (max-width: 767.98px) {
             .container {
                 padding: 10px;
@@ -169,9 +215,9 @@ $result = $conn->query($sql);
                 font-size: 0.85em;
             }
 
-            .row > div {
-                padding-left: 5px;
-                padding-right: 5px;
+            .sektor-grid {
+                grid-template-columns: repeat(2, 1fr); /* 2 kolom di mobile */
+                gap: 10px;
             }
 
             #tambahSektorFab {
@@ -189,7 +235,7 @@ $result = $conn->query($sql);
     <header class="page-header">
         <div class="header-nav">
             <div id="kembaliBtnContainer">
-                <a href="../../index.php" class="btn btn-secondary" title="Kembali ke Beranda">
+                <a href="?path=index.php" class="btn btn-secondary" title="Kembali ke Beranda">
                     <i class="fas fa-arrow-left"></i>
                 </a>
             </div>
@@ -205,18 +251,33 @@ $result = $conn->query($sql);
     </header>
 
     <div class="container">
-        <h2 class="text-center mb-3" style="color: var(--color-primary); font-weight: 600;">Daftar Sektor Gudang</h2>
+        <h2 class="text-center mb-3" style="color: var(--color-primary); font-weight: 600;">Sektor Gudang</h2>
 
-        <div class="row">
+        <!-- Tambahkan kode untuk menampilkan pesan sukses/error -->
+        <?php if (isset($_GET['success'])): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <?php echo htmlspecialchars($_GET['success']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+        <?php if (isset($_GET['error'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?php echo htmlspecialchars($_GET['error']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
+        <div class="sektor-grid"> <!-- Menggunakan CSS Grid -->
             <?php if ($result->num_rows > 0): ?>
                 <?php while ($row = $result->fetch_assoc()): ?>
-                    <div class="col-12 col-sm-6 col-md-4 mb-4">
-                        <div class="card" onclick="window.location.href='?path=sektor_detail.php?id=<?php echo $row['id']; ?>'">
-                            <div class="card-body">
-                                <h5 class="card-title"><?php echo htmlspecialchars($row['nama_sektor']); ?></h5>
-                                <p class="card-text"><?php echo htmlspecialchars($row['deskripsi'] ?? 'Tidak ada deskripsi'); ?></p>
-                                <p class="card-text"><small class="text-muted">Diperbarui: <?php echo date('d-m-Y H:i', strtotime($row['tanggal_update'])); ?></small></p>
-                            </div>
+                    <div class="card" onclick="window.location.href='?path=sektor_detail&id=<?php echo $row['id']; ?>'">
+                        <button class="delete-btn" onclick="event.stopPropagation(); hapusSektor(<?php echo $row['id']; ?>);" title="Hapus Sektor">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <div class="card-body">
+                            <h5 class="card-title"><?php echo htmlspecialchars($row['nama_sektor']); ?></h5>
+                            <p class="card-text"><?php echo htmlspecialchars($row['deskripsi'] ?? 'Tidak ada deskripsi'); ?></p>
+                            <p class="card-text"><small class="text-muted">Diperbarui: <?php echo date('d-m-Y H:i', strtotime($row['tanggal_update'])); ?></small></p>
                         </div>
                     </div>
                 <?php endwhile; ?>
@@ -282,7 +343,6 @@ $result = $conn->query($sql);
             const initialType = document.querySelector('input[name="gudang_type"]:checked').value;
             toggleFabVisibility(initialType);
 
-
             radioButtons.forEach(radio => {
                 radio.addEventListener('change', function() {
                     const selectedValue = this.value;
@@ -290,11 +350,18 @@ $result = $conn->query($sql);
 
                     if (selectedValue === 'pecahon') {
                         // Redirect ke gudang_pecahon.php
-                        window.location.href = '?path=gudang_pecahon.php';
+                        window.location.href = '?path=gudang_pecahon';
                     }
                 });
             });
         });
+
+        // Fungsi hapus sektor
+        function hapusSektor(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus sektor ini? Tindakan ini tidak dapat dibatalkan.')) {
+                window.location.href = '?path=hapus_sektor.php&id=' + id;
+            }
+        }
     </script>
 </body>
 </html>

@@ -27,13 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         $conn->commit();
 
-        echo "<script>alert('Barang berhasil diambil dari gudang pecahon!'); window.location.href='?path=gudang_pecahon.php';</script>";
+        echo "<script>alert('Barang berhasil diambil dari gudang pecahon!'); window.location.href='?path=gudang_pecahon';</script>";
     } catch (Exception $e) {
         $conn->rollback();
-        echo "<script>alert('Gagal mengambil barang: " . $e->getMessage() . "'); window.location.href='?path=gudang_pecahon.php';</script>";
+        echo "<script>alert('Gagal mengambil barang: " . $e->getMessage() . "'); window.location.href='?path=gudang_pecahon';</script>";
     }
 } else {
-    header("Location: ?path=gudang_pecahon.php");
+    header("Location: ?path=gudang_pecahon");
     exit();
 }
 
