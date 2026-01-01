@@ -53,6 +53,42 @@ $monitoring_stmt->execute();
 $monitoring_result = $monitoring_stmt->get_result();
 $monitoring = $monitoring_result->fetch_assoc();
 $monitoring_stmt->close();
+
+// Query tagihan untuk sales ini
+$tagihan_query = "
+SELECT
+    o.id as order_id,
+    CONCAT('ORD-', LPAD(o.id, 5, '0')) as kode_order,
+    o.tanggal_order,
+    o.total_harga as total_amount,
+    DATE_ADD(o.tanggal_order, INTERVAL 30 DAY) as tanggal_jatuh_tempo,
+    DATEDIFF(DATE_ADD(o.tanggal_order, INTERVAL 30 DAY), CURDATE()) as hari_jatuh_tempo,
+    COALESCE(
+        (SELECT SUM(rod.subtotal)
+         FROM riwayat_order_detail rod
+         WHERE rod.riwayat_order_id IN (
+            SELECT ro.id FROM riwayat_order ro WHERE ro.order_id = o.id
+         )),
+        0
+    ) as total_detail,
+    o.status
+FROM orders o
+WHERE o.sales_id = ? AND o.tanggal_order >= DATE_SUB(CURDATE(), INTERVAL 60 DAY) AND o.total_harga > 0 AND (o.status IS NULL OR o.status != 'sudah_dibayar')
+ORDER BY o.tanggal_order DESC
+";
+
+$tagihan_stmt = $conn->prepare($tagihan_query);
+$tagihan_stmt->bind_param("i", $sales_id);
+$tagihan_stmt->execute();
+$tagihan_result = $tagihan_stmt->get_result();
+$tagihan_list = [];
+$total_tagihan = 0;
+while ($row = $tagihan_result->fetch_assoc()) {
+    $row['final_amount'] = ($row['total_detail'] > 0) ? $row['total_detail'] : $row['total_amount'];
+    $tagihan_list[] = $row;
+    $total_tagihan += $row['final_amount'];
+}
+$tagihan_stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -203,6 +239,75 @@ $monitoring_stmt->close();
         .badge.hari-ini { background: #e3f2fd; color: #1976d2; border: 1px solid #1976d2; }
         .badge.telat { background: #ffebee; color: #c62828; border: 1px solid #c62828; animation: pulse 2s infinite; }
         .badge.belum { background: #f5f5f5; color: #616161; border: 1px solid #bdbdbd; }
+        .badge.overdue { background: #ffebee; color: #dc3545; border: 1px solid #dc3545; }
+        .badge.warning { background: #fff3cd; color: #856404; border: 1px solid #856404; }
+
+        /* Tagihan Styles */
+        .tagihan-list {
+            margin-bottom: 30px;
+        }
+
+        .tagihan-item {
+            background: rgba(67, 112, 87, 0.02);
+            border: 1px solid rgba(67, 112, 87, 0.1);
+            border-left: 4px solid #437057;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .tagihan-item:hover {
+            background: rgba(67, 112, 87, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .tagihan-item.selected {
+            background: rgba(67, 112, 87, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .checkbox-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 10;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .tagihan-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-right: 40px; /* Space for checkbox */
+        }
+
+        .tagihan-amount {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: right;
+        }
+
+        .total-tagihan {
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 20px rgba(67, 112, 87, 0.2);
+        }
 
         /* Buttons Area */
         .action-area {
@@ -329,17 +434,95 @@ $monitoring_stmt->close();
                 </div>
             </div>
 
+            <?php if (!empty($tagihan_list)): ?>
+            <h3 class="section-title">Tagihan Tersedia</h3>
+            <form id="payment-form" method="POST" action="?path=proses_pembayaran_multiple&sales_id=<?= $sales_id ?>">
+                <div class="tagihan-list">
+                    <?php foreach ($tagihan_list as $tagihan): ?>
+                        <div class="tagihan-item" style="border-left-color: <?php echo ($tagihan['hari_jatuh_tempo'] < 0) ? '#dc3545' : (($tagihan['hari_jatuh_tempo'] <= 7 && $tagihan['hari_jatuh_tempo'] >= 0) ? '#ffc107' : '#437057'); ?>;" onclick="handleItemClick(event, this, '<?= $tagihan['order_id'] ?>')">
+                            <div class="checkbox-container">
+                                <input type="checkbox" name="selected_orders[]" value="<?= $tagihan['order_id'] ?>" onchange="toggleSelection(this)">
+                            </div>
+                            <div class="tagihan-info">
+                                <div>
+                                    <strong><?php echo htmlspecialchars($tagihan['kode_order']); ?></strong>
+                                    <br>
+                                    <small style="color: #666;">
+                                        Order: <?php echo date('d/m/Y', strtotime($tagihan['tanggal_order'])); ?> |
+                                        Jatuh Tempo: <?php echo date('d/m/Y', strtotime($tagihan['tanggal_jatuh_tempo'])); ?>
+                                    </small>
+                                </div>
+                                <div>
+                                    <div class="tagihan-amount">
+                                        Rp <?php echo number_format($tagihan['final_amount'], 0, ',', '.'); ?>
+                                    </div>
+                                    <?php if ($tagihan['hari_jatuh_tempo'] < 0): ?>
+                                        <span class="badge overdue">Terlambat <?php echo abs($tagihan['hari_jatuh_tempo']); ?> hari</span>
+                                    <?php elseif ($tagihan['hari_jatuh_tempo'] <= 7 && $tagihan['hari_jatuh_tempo'] >= 0): ?>
+                                        <span class="badge warning"><?php echo $tagihan['hari_jatuh_tempo']; ?> hari lagi</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </form>
+
+            <div class="total-tagihan">
+                <strong>Total Tagihan: Rp <?php echo number_format($total_tagihan, 0, ',', '.'); ?></strong>
+            </div>
+
             <div class="action-area">
+                <button type="submit" form="payment-form" class="btn-checkin" style="background: linear-gradient(135deg, #ffc107, #e0a800); display: none;" id="process-selected-btn">
+                    Proses Pembayaran Terpilih
+                </button>
+                <br>
                 <a class="btn-checkin" href="?path=proses_kunjungan&sales_id=<?= $sales_id ?>">
                     Checkin Kunjungan
+                </a>
+                <br>
+                <a class="btn-checkin" href="?path=riwayat_pembayaran&sales_id=<?= $sales_id ?>" style="background: linear-gradient(135deg, #17a2b8, #138496);">
+                    Lihat Riwayat Pembayaran
                 </a>
                 <br>
                 <a class="btn-back" href="../../index.php?path=supplier_detail/<?= urlencode($sales['perusahaan']) ?>">
                     ← Kembali ke Detail Supplier
                 </a>
             </div>
+            <?php endif; ?>
         </div>
     </div>
+
+    <script>
+        function handleItemClick(event, element, orderId) {
+            // Prevent navigation if clicking on checkbox
+            if (event.target.type === 'checkbox') {
+                return;
+            }
+
+            // Navigate to single payment page
+            window.location.href = '?path=proses_pembayaran&sales_id=<?= $sales_id ?>&order_id=' + orderId;
+        }
+
+        function toggleSelection(checkbox) {
+            const item = checkbox.closest('.tagihan-item');
+            const btn = document.getElementById('process-selected-btn');
+
+            if (checkbox.checked) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+
+            // Check if any checkboxes are selected
+            const checkedBoxes = document.querySelectorAll('input[name="selected_orders[]"]:checked');
+            if (checkedBoxes.length > 0) {
+                btn.style.display = 'inline-block';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+    </script>
 
 </body>
 </html>

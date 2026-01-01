@@ -20,7 +20,7 @@ $query = "
         r.daftar_barang_id,
         r.created_at,
         db.nama_barang,
-        db.qty,
+        r.qty AS qty_retur,
         db.gambar,
         s.nama_supplier,
         sa.nama_sales
@@ -256,45 +256,94 @@ p {
 
     <!-- Form Filter -->
     <form method="GET" class="form-filter">
-        <input type="text" name="search" placeholder="Cari nama barang..." value="<?= htmlspecialchars($search) ?>">
-        <select name="supplier_id">
+        <input type="text" id="search" name="search" placeholder="Cari nama barang...">
+
+        <select id="supplier_id" name="supplier_id">
             <option value="0">Semua Supplier</option>
             <?php while ($sup = $supplierResult->fetch_assoc()): ?>
-                <option value="<?= $sup['id'] ?>" <?= $filterSupplier==$sup['id']?'selected':'' ?>>
+                <option value="<?= $sup['id'] ?>" <?= ($filterSupplier == $sup['id']) ? 'selected' : '' ?>>
                     <?= htmlspecialchars($sup['nama_supplier']) ?>
                 </option>
             <?php endwhile; ?>
         </select>
-        <select name="sales_id">
+
+        <select id="sales_id" name="sales_id">
             <option value="0">Semua Sales</option>
             <?php while ($sa = $salesResult->fetch_assoc()): ?>
-                <option value="<?= $sa['sales_id'] ?>" <?= $filterSales==$sa['sales_id']?'selected':'' ?>>
+                <option value="<?= $sa['sales_id'] ?>" <?= ($filterSales == $sa['sales_id']) ? 'selected' : '' ?>>
                     <?= htmlspecialchars($sa['nama_sales']) ?>
                 </option>
             <?php endwhile; ?>
         </select>
+
         <button type="submit">Filter</button>
     </form>
 
-    <div class="grid">
-        <?php if($result->num_rows == 0): ?>
+    <!-- Grid hasil (AJAX / PHP) -->
+    <div class="grid" id="returGrid">
+        <?php if ($result->num_rows == 0): ?>
             <p>Tidak ada data retur.</p>
         <?php else: ?>
-            <?php while($row = $result->fetch_assoc()): ?>
+            <?php while ($row = $result->fetch_assoc()): ?>
                 <div class="card">
-                    <img src="<?= !empty($row['gambar']) ? '../../uploads/barang/'.htmlspecialchars($row['gambar']) : 'https://via.placeholder.com/100' ?>" alt="gambar barang">
+                    <img src="<?= !empty($row['gambar'])
+                        ? '../../uploads/barang/' . htmlspecialchars($row['gambar'])
+                        : 'https://via.placeholder.com/100' ?>"
+                        alt="gambar barang">
+
                     <h3><?= htmlspecialchars($row['nama_barang'] ?? '-') ?></h3>
                     <p><strong>Supplier:</strong> <?= htmlspecialchars($row['nama_supplier'] ?? '-') ?></p>
                     <p><strong>Sales:</strong> <?= htmlspecialchars($row['nama_sales'] ?? '-') ?></p>
-                    <p><strong>Qty:</strong> <?= intval($row['qty'] ?? 0) ?></p>
+                    <p><strong>Qty:</strong> <?= (int)($row['qty_retur'] ?? 0) ?></p>
+
                     <div class="actions">
                         <a href="?path=retur_edit&id=<?= $row['retur_id'] ?>" class="btn-edit">Edit</a>
-                        <a href="?path=retur_delete&id=<?= $row['retur_id'] ?>" class="btn-delete" onclick="return confirm('Yakin ingin menghapus retur ini?')">Hapus</a>
+                        <a href="?path=retur_delete&id=<?= $row['retur_id'] ?>"
+                           class="btn-delete"
+                           onclick="return confirm('Yakin ingin menghapus retur ini?')">
+                           Hapus
+                        </a>
                     </div>
                 </div>
             <?php endwhile; ?>
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+const searchInput   = document.getElementById('search');
+const supplierInput = document.getElementById('supplier_id');
+const salesInput    = document.getElementById('sales_id');
+const grid          = document.getElementById('returGrid');
+
+let timer = null;
+
+function loadRetur() {
+    const params = new URLSearchParams({
+        search: searchInput.value,
+        supplier_id: supplierInput.value,
+        sales_id: salesInput.value
+    });
+
+    fetch('?path=retur_search&' + params.toString())
+        .then(res => res.text())
+        .then(html => {
+            grid.innerHTML = html;
+        });
+}
+
+// live typing (debounce 300ms)
+searchInput.addEventListener('keyup', () => {
+    clearTimeout(timer);
+    timer = setTimeout(loadRetur, 300);
+});
+
+// filter change
+supplierInput.addEventListener('change', loadRetur);
+salesInput.addEventListener('change', loadRetur);
+
+// load pertama kali
+loadRetur();
+</script>
 </body>
 </html>

@@ -1,5 +1,5 @@
-<?php
-// Routing logic
+﻿<?php
+// Routing logic (tetap sama seperti sebelumnya)
 if (isset($_GET['path'])) {
     $path = $_GET['path'];
 
@@ -20,16 +20,12 @@ if (isset($_GET['path'])) {
         'monitor_sales' => 'inti/order/monitor_sales.php',
         'supplier_detail' => 'inti/order/supplier_detail.php',
         'sektor_detail' => 'inti/gudang/sektor_detail.php',
-        'sektor_detail' => 'inti/gudang/sektor_detail.php',
         'edit_barang_pecahon' => 'inti/gudang/edit_barang_pecahon.php',
         'edit_barang_gdg' => 'inti/gudang/edit_barang_gdg.php',
         'barang_sektor' => 'inti/gudang/barang_sektor.php',
         // Add more routes as needed for gudang subpages
         'tambah_sektor' => 'inti/gudang/tambah_sektor.php',
         'hapus_sektor' => 'inti/gudang/hapus_sektor.php',
-        'edit_barang_gdg' => 'inti/gudang/edit_barang_gdg.php',
-        'ambil_barang' => 'inti/gudang/ambil_barang.php',
-        'tambah_barang_sektor' => 'inti/gudang/tambah_barang_sektor.php',
         'hapus_barang' => 'inti/gudang/hapus_barang.php',
         'get_barang' => 'inti/gudang/get_barang.php',
         'tambah_supplier_ajax' => 'inti/gudang/tambah_supplier_ajax.php',
@@ -45,6 +41,7 @@ if (isset($_GET['path'])) {
         'order_now' => 'inti/order/order_now.php',
         'print_order' => 'inti/order/print_order.php',
         'proses_kunjungan' => 'inti/order/proses_kunjungan.php',
+        'proses_pembayaran' => 'inti/order/proses_pembayaran.php',
         'proses_retur' => 'inti/order/proses_retur.php',
         'proses_tambah_barang' => 'inti/order/proses_tambah_barang.php',
         'delet_riwayat' => 'inti/order/delet_riwayat.php',
@@ -55,12 +52,17 @@ if (isset($_GET['path'])) {
         'unduh_excel' => 'inti/order/unduh_excel.php',
         'helpers/image_helper' => 'inti/order/helpers/image_helper.php',
         'index.php/supplier_detail' => 'inti/order/supplier_detail.php',
+        'proses_pembayaran_multiple' => 'inti/order/proses_pembayaran_multiple.php',
+        'riwayat_pembayaran' => 'inti/order/riwayat_pembayaran.php',
+        'generate_excel_simple' => 'inti/order/generate_excel_simple.php',
         // Retur routes
         'retur_add' => 'inti/retur/retur_add.php',
         'retur_delete' => 'inti/retur/retur_delete.php',
         'retur_edit' => 'inti/retur/retur_edit.php',
         'tambah_retur_proses' => 'inti/retur/tambah_retur_proses.php',
         'live_search_barang' => 'inti/retur/live_search_barang.php',
+        'retur_search' => 'inti/retur/retur_search.php',
+        'pengaturan' => 'inti/pengaturan/index.php',
     ];
 
     if (isset($routes[$path])) {
@@ -72,7 +74,6 @@ if (isset($_GET['path'])) {
         exit;
     }
 }
-
 
 include 'config.php';
 
@@ -123,112 +124,79 @@ if ($notification_result->num_rows > 0) {
     }
 }
 
-// QUERY TAGIHAN YANG TEPAT BERDASARKAN STRUKTUR TABEL
-// Asumsi: Semua order yang sudah dibuat dianggap sebagai tagihan
-// karena tidak ada kolom status_pembayaran di tabel orders
-
+// QUERY TAGIHAN YANG BELUM DIBAYAR BERDASARKAN STATUS
+// Hanya ambil order dengan status 'belum_dibayar' atau 'pending'
 $tagihan_query = "
-SELECT 
+SELECT
     o.id as order_id,
     CONCAT('ORD-', LPAD(o.id, 5, '0')) as kode_order,
     o.tanggal_order,
     o.total_harga as total_amount,
+    o.status,
+    s.id as sales_id,
     s.nama_sales,
     s.perusahaan,
     s.kontak,
-    'BELUM LUNAS' as status_tagihan,
+    CASE 
+        WHEN o.status = 'belum_dibayar' THEN 'BELUM LUNAS'
+        WHEN o.status = 'pending' THEN 'PENDING'
+        ELSE o.status
+    END as status_tagihan,
     DATE_ADD(o.tanggal_order, INTERVAL 30 DAY) as tanggal_jatuh_tempo,
     DATEDIFF(DATE_ADD(o.tanggal_order, INTERVAL 30 DAY), CURDATE()) as hari_jatuh_tempo,
-    (SELECT COUNT(*) FROM riwayat_order ro WHERE ro.order_id = o.id) as jumlah_riwayat,
-    COALESCE(
-        (SELECT SUM(rod.subtotal) 
-         FROM riwayat_order_detail rod 
-         WHERE rod.riwayat_order_id IN (
-            SELECT ro.id FROM riwayat_order ro WHERE ro.order_id = o.id
-         )),
-        0
-    ) as total_detail
+    (SELECT COUNT(*) FROM riwayat_order ro WHERE ro.order_id = o.id) as jumlah_riwayat
 FROM orders o
 JOIN sales s ON o.sales_id = s.id
 WHERE o.tanggal_order >= DATE_SUB(CURDATE(), INTERVAL 60 DAY) -- 2 bulan terakhir
     AND o.total_harga > 0
-ORDER BY o.tanggal_order DESC, o.total_harga DESC
-LIMIT 15
-";
-
-// Versi alternatif jika ingin mengambil dari riwayat_order_detail
-$tagihan_query_alt = "
-SELECT 
-    o.id as order_id,
-    CONCAT('ORD-', LPAD(o.id, 5, '0')) as kode_order,
-    o.tanggal_order,
-    s.nama_sales,
-    s.perusahaan,
-    s.kontak,
-    COALESCE(
-        (SELECT SUM(rod.subtotal) 
-         FROM riwayat_order_detail rod 
-         JOIN riwayat_order ro ON rod.riwayat_order_id = ro.id 
-         WHERE ro.order_id = o.id),
-        o.total_harga,
-        0
-    ) as total_amount,
-    DATE_ADD(o.tanggal_order, INTERVAL 30 DAY) as tanggal_jatuh_tempo,
-    DATEDIFF(DATE_ADD(o.tanggal_order, INTERVAL 30 DAY), CURDATE()) as hari_jatuh_tempo,
+    AND o.status IN ('belum_dibayar', 'pending') -- HANYA YANG BELUM DIBAYAR
+ORDER BY 
     CASE 
-        WHEN DATEDIFF(DATE_ADD(o.tanggal_order, INTERVAL 30 DAY), CURDATE()) <= 0 THEN 'JATUH TEMPO'
-        ELSE 'BELUM LUNAS'
-    END as status_tagihan,
-    (SELECT COUNT(*) FROM riwayat_order_detail rod 
-     JOIN riwayat_order ro ON rod.riwayat_order_id = ro.id 
-     WHERE ro.order_id = o.id) as jumlah_item
-FROM orders o
-JOIN sales s ON o.sales_id = s.id
-WHERE o.tanggal_order >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
-HAVING total_amount > 0
-ORDER BY tanggal_jatuh_tempo ASC, total_amount DESC
+        WHEN o.status = 'pending' THEN 1
+        WHEN o.status = 'belum_dibayar' THEN 2
+        ELSE 3
+    END,
+    o.tanggal_order DESC, 
+    o.total_harga DESC
 LIMIT 15
 ";
 
-// Coba query utama dulu
+// Coba query utama
 $tagihan_result = $conn->query($tagihan_query);
 $tagihan_list = [];
 $total_tagihan_pending = 0;
 
 if ($tagihan_result && $tagihan_result->num_rows > 0) {
     while ($row = $tagihan_result->fetch_assoc()) {
-        // Gunakan total dari detail jika ada, jika tidak gunakan dari orders
-        $row['final_amount'] = ($row['total_detail'] > 0) ? $row['total_detail'] : $row['total_amount'];
+        $row['final_amount'] = $row['total_amount'];
         $tagihan_list[] = $row;
         $total_tagihan_pending += $row['final_amount'];
     }
 } else {
-    // Coba query alternatif
-    $tagihan_result_alt = $conn->query($tagihan_query_alt);
-    if ($tagihan_result_alt && $tagihan_result_alt->num_rows > 0) {
-        while ($row = $tagihan_result_alt->fetch_assoc()) {
-            $row['final_amount'] = $row['total_amount'];
-            $tagihan_list[] = $row;
-            $total_tagihan_pending += $row['total_amount'];
-        }
-    }
-}
-
-// Jika masih kosong, ambil data sederhana
-if (empty($tagihan_list)) {
+    // Jika query utama gagal, coba query sederhana
     $simple_query = "
     SELECT 
         o.id as order_id,
-        CONCAT('ORD-', o.id) as kode_order,
+        CONCAT('ORD-', LPAD(o.id, 5, '0')) as kode_order,
         o.tanggal_order,
         o.total_harga as total_amount,
+        o.status,
+        s.id as sales_id,
         s.nama_sales,
         s.perusahaan,
-        'BELUM LUNAS' as status_tagihan,
+        s.kontak,
+        CASE 
+            WHEN o.status = 'belum_dibayar' THEN 'BELUM LUNAS'
+            WHEN o.status = 'pending' THEN 'PENDING'
+            ELSE o.status
+        END as status_tagihan,
         DATE_ADD(o.tanggal_order, INTERVAL 30 DAY) as tanggal_jatuh_tempo,
         DATEDIFF(DATE_ADD(o.tanggal_order, INTERVAL 30 DAY), CURDATE()) as hari_jatuh_tempo
     FROM orders o
     JOIN sales s ON o.sales_id = s.id
+    WHERE o.tanggal_order >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+        AND o.total_harga > 0
+        AND o.status IN ('belum_dibayar', 'pending')
     ORDER BY o.tanggal_order DESC
     LIMIT 10
     ";
@@ -237,7 +205,7 @@ if (empty($tagihan_list)) {
     if ($simple_result && $simple_result->num_rows > 0) {
         while ($row = $simple_result->fetch_assoc()) {
             $row['final_amount'] = $row['total_amount'];
-            $row['kontak'] = '';
+            $row['jumlah_riwayat'] = 0;
             $tagihan_list[] = $row;
             $total_tagihan_pending += $row['total_amount'];
         }
@@ -607,6 +575,13 @@ $conn->close();
             border-radius: 10px;
             margin-bottom: 10px;
             border-left: 4px solid var(--danger);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .tagihan-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
         
         .invoice-info {
@@ -891,6 +866,11 @@ $conn->close();
             color: #ef6c00;
         }
         
+        .status-paid {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
         /* Tambahan untuk informasi tagihan */
         .tagihan-info {
             display: flex;
@@ -912,6 +892,33 @@ $conn->close();
             color: #e74c3c;
             font-weight: 600;
             font-size: 0.9em;
+        }
+        
+        .order-status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+        
+        .status-belum-dibayar {
+            background: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #ffb74d;
+        }
+        
+        .status-pending {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #64b5f6;
+        }
+        
+        .status-sudah-dibayar {
+            background: #e8f5e9;
+            color: #388e3c;
+            border: 1px solid #81c784;
         }
     </style>
 </head>
@@ -942,17 +949,21 @@ $conn->close();
                     <i class="fas fa-chart-line"></i>
                     <span>Laporan</span>
                 </a>
-                <a href="?path=daftar_barang.php" class="quick-nav-item">
+                <a href="?path=daftar_barang" class="quick-nav-item">
                     <i class="fas fa-list"></i>
                     <span>Barang</span>
                 </a>
-                <a href="?path=riwayat_order.php" class="quick-nav-item">
+                <a href="?path=riwayat_order" class="quick-nav-item">
                     <i class="fas fa-history"></i>
                     <span>Riwayat</span>
                 </a>
-                <a href="?path=monitor_sales.php" class="quick-nav-item">
+                <a href="index.php?path=order" class="quick-nav-item">
                     <i class="fas fa-users"></i>
                     <span>Sales</span>
+                </a>
+                <a href="?path=pengaturan" class="quick-nav-item">
+                    <i class="fas fa-cogs"></i>
+                    <span>Pengaturan</span>
                 </a>
                 <a href="#" class="quick-nav-item" onclick="window.location.reload()">
                     <i class="fas fa-sync-alt"></i>
@@ -1004,7 +1015,7 @@ $conn->close();
                 <div>
                     <h3 class="tagihan-title">Tagihan Belum Dibayar</h3>
                     <p style="font-size: 0.9em; color: #666; margin-top: 5px;">
-                        Order 60 hari terakhir yang belum lunas
+                        Order 60 hari terakhir dengan status "belum_dibayar" atau "pending"
                     </p>
                 </div>
             </div>
@@ -1016,12 +1027,27 @@ $conn->close();
                     $counter++;
                     $is_overdue = isset($tagihan['hari_jatuh_tempo']) && $tagihan['hari_jatuh_tempo'] < 0;
                     $is_soon = isset($tagihan['hari_jatuh_tempo']) && $tagihan['hari_jatuh_tempo'] <= 7 && $tagihan['hari_jatuh_tempo'] >= 0;
+                    $status_class = '';
+                    if (isset($tagihan['status'])) {
+                        if ($tagihan['status'] === 'belum_dibayar') {
+                            $status_class = 'status-belum-dibayar';
+                        } elseif ($tagihan['status'] === 'pending') {
+                            $status_class = 'status-pending';
+                        } elseif ($tagihan['status'] === 'sudah_dibayar') {
+                            $status_class = 'status-sudah-dibayar';
+                        }
+                    }
                 ?>
-                <li class="tagihan-item" style="border-left-color: <?php echo $is_overdue ? 'var(--danger)' : ($is_soon ? 'var(--warning)' : 'var(--primary)'); ?>;">
+                <li class="tagihan-item" onclick="window.location.href='?path=monitor_sales&sales_id=<?php echo htmlspecialchars($tagihan['sales_id']); ?>'">
                     <div class="invoice-info">
                         <div>
                             <div class="sales-name">
                                 <?php echo htmlspecialchars($tagihan['nama_sales']); ?>
+                                <?php if(isset($tagihan['status'])): ?>
+                                    <span class="order-status <?php echo $status_class; ?>">
+                                        <?php echo strtoupper(str_replace('_', ' ', $tagihan['status'])); ?>
+                                    </span>
+                                <?php endif; ?>
                                 <?php if(isset($tagihan['kode_order'])): ?>
                                     <small style="color: #666; background: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">
                                         <?php echo htmlspecialchars($tagihan['kode_order']); ?>
@@ -1052,17 +1078,6 @@ $conn->close();
                                     </span>
                                 <?php endif; ?>
                             </div>
-                            <?php if(isset($tagihan['status_tagihan'])): ?>
-                                <div style="margin-top: 5px; text-align: right;">
-                                    <span class="status-badge 
-                                        <?php echo $is_overdue ? 'status-due' : 'status-pending'; ?>">
-                                        <?php if($is_overdue): ?>
-                                            <i class="fas fa-exclamation-circle"></i>
-                                        <?php endif; ?>
-                                        <?php echo htmlspecialchars($tagihan['status_tagihan']); ?>
-                                    </span>
-                                </div>
-                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="invoice-amount">
@@ -1072,14 +1087,12 @@ $conn->close();
                     
                     <div class="tagihan-info">
                         <div>
-                            <span class="item-count">
-                                <i class="fas fa-box" style="margin-right: 3px;"></i>
-                                <?php 
-                                $item_count = isset($tagihan['jumlah_item']) ? $tagihan['jumlah_item'] : 
-                                            (isset($tagihan['jumlah_riwayat']) ? $tagihan['jumlah_riwayat'] : '?');
-                                echo $item_count . ' item';
-                                ?>
-                            </span>
+                            <?php if(isset($tagihan['jumlah_riwayat']) && $tagihan['jumlah_riwayat'] > 0): ?>
+                                <span class="item-count">
+                                    <i class="fas fa-history" style="margin-right: 3px;"></i>
+                                    <?php echo $tagihan['jumlah_riwayat']; ?> riwayat
+                                </span>
+                            <?php endif; ?>
                             <span style="margin-left: 10px; color: #888;">
                                 <i class="far fa-calendar" style="margin-right: 3px;"></i>
                                 Order: <?php echo date('d/m/Y', strtotime($tagihan['tanggal_order'])); ?>
@@ -1108,7 +1121,7 @@ $conn->close();
                 </small>
                 <div style="font-size: 0.8em; color: #888; margin-top: 5px;">
                     <i class="fas fa-info-circle"></i>
-                    Catatan: Semua order dianggap belum lunas karena tidak ada data pembayaran
+                    Hanya menampilkan order dengan status "belum_dibayar" atau "pending"
                 </div>
             </div>
         </div>
@@ -1120,7 +1133,7 @@ $conn->close();
                 </div>
                 <h3 class="notification-title" style="color: #27ae60;">Tidak Ada Tagihan Tertunda</h3>
             </div>
-            <p>Semua order dalam 60 hari terakhir sudah dilunasi atau tidak ada order yang perlu ditagih.</p>
+            <p>Semua order dalam 60 hari terakhir sudah dilunasi atau tidak ada order dengan status "belum_dibayar"/"pending".</p>
         </div>
         <?php endif; ?>
         
@@ -1221,20 +1234,19 @@ $conn->close();
             </h4>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
                 <div>
-                    <h5 style="color: #666; margin-bottom: 5px;">Cara Kerja Tagihan:</h5>
+                    <h5 style="color: #666; margin-bottom: 5px;">Status Order:</h5>
                     <ul style="font-size: 0.9em; color: #666; padding-left: 20px;">
-                        <li>Semua order dianggap belum lunas</li>
-                        <li>Jatuh tempo: 30 hari dari tanggal order</li>
-                        <li>Data diambil dari 60 hari terakhir</li>
-                        <li>Total dihitung dari riwayat_order_detail</li>
+                        <li><span class="status-belum-dibayar" style="padding: 2px 6px;">BELUM DIBAYAR</span>: Order belum dibayar</li>
+                        <li><span class="status-pending" style="padding: 2px 6px;">PENDING</span>: Menunggu konfirmasi</li>
+                        <li><span class="status-sudah-dibayar" style="padding: 2px 6px;">SUDAH DIBAYAR</span>: Tidak ditampilkan</li>
                     </ul>
                 </div>
                 <div>
-                    <h5 style="color: #666; margin-bottom: 5px;">Status Warna:</h5>
+                    <h5 style="color: #666; margin-bottom: 5px;">Jatuh Tempo:</h5>
                     <ul style="font-size: 0.9em; color: #666; padding-left: 20px;">
-                        <li><span style="color: var(--danger);">Merah</span>: Jatuh tempo</li>
-                        <li><span style="color: var(--warning);">Kuning</span>: ≤7 hari lagi</li>
-                        <li><span style="color: var(--primary);">Hijau</span>: Masih lama</li>
+                        <li>Jatuh tempo: 30 hari dari tanggal order</li>
+                        <li>Data diambil dari 60 hari terakhir</li>
+                        <li>Klik item untuk melihat detail sales</li>
                     </ul>
                 </div>
             </div>
@@ -1248,12 +1260,13 @@ $conn->close();
             </div>
             <div style="margin-top: 10px; font-size: 0.8em; color: #999;">
                 Data terakhir diperbarui: <?php echo date('d/m/Y H:i:s'); ?>
+                <br>
+                Status filter: Hanya order "belum_dibayar" dan "pending"
             </div>
         </div>
     </div>
     
     <script>
-        // [JavaScript tetap sama seperti sebelumnya]
         document.addEventListener('DOMContentLoaded', function() {
             const navLinks = document.querySelectorAll('.nav-link, .quick-nav-item');
             
