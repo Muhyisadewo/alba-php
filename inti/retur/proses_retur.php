@@ -26,24 +26,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bind_param("iiiis", $daftar_barang_id, $order_id, $supplier_id, $qty, $alasan);
 
     if ($stmt->execute()) {
-        echo "
-            <script>
-                alert('Retur berhasil ditambahkan.');
-                window.location.href = 'retur_add.php';
-            </script>
-        ";
+        header("Location: ?path=retur");
         exit;
     } else {
-        echo "
-            <script>
-                alert('Gagal menambahkan retur.');
-                window.history.back();
-            </script>
-        ";
+        header("Location: ?path=retur_add&error=1");
+        exit;
     }
 
     $stmt->close();
     $conn->close();
+}   else {
+    header("Location: ?path=retur");
+    exit;
 }
 
 ?>

@@ -13,7 +13,7 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $sales_id);
 
 if ($stmt->execute()) {
-    header("Location:?path=monitor_sales.php?sales_id=$sales_id&msg=sukses");
+    header("Location:?path=monitor_sales&sales_id=$sales_id&msg=sukses");
     exit;
 } else {
     echo "Gagal mencatat kunjungan: " . $stmt->error;

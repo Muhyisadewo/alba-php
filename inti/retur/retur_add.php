@@ -336,7 +336,7 @@ $result = $stmt->get_result();
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
             <h3>Tambah Retur Barang</h3>
-            <form id="returForm" method="POST" action="proses_retur.php">
+            <form id="returForm" method="POST" action="?path=proses_retur">
                 <input type="hidden" id="daftar_barang_id" name="daftar_barang_id">
                 <input type="hidden" id="order_id" name="order_id">
                 <input type="hidden" id="supplier_id" name="supplier_id">
@@ -365,7 +365,7 @@ $result = $stmt->get_result();
                 const keyword = this.value;
 
                 // Menggunakan AJAX untuk Live Search
-                fetch('live_search_barang.php?search=' + encodeURIComponent(keyword))
+                fetch('?path=live_search_barang&search=' + encodeURIComponent(keyword))
                     .then(res => res.text())
                     .then(html => {
                         resultBox.innerHTML = html;
@@ -380,7 +380,7 @@ $result = $stmt->get_result();
         function hapusBarang(id) {
             if (!confirm('Yakin ingin menghapus barang ini? Tindakan ini tidak dapat dibatalkan.')) return;
 
-            fetch('hapus_barang.php', {
+            fetch('?path=hapus_barang', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: 'id=' + id

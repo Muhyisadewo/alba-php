@@ -26,7 +26,7 @@ $stmt_order = $conn->prepare($sql_delete_order);
 $stmt_order->bind_param("i", $id);
 
 if ($stmt_order->execute()) {
-    header("Location: /index.php?path=riwayat_order.php");
+    header("Location: /index.php?path=riwayat_order");
     exit();
 } else {
     echo "Error menghapus order: " . $conn->error;

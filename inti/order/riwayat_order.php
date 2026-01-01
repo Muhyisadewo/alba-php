@@ -1,7 +1,7 @@
 <?php
 // Redirect to routed URL if accessed directly
 if (!isset($_GET['path'])) {
-    header("Location: /index.php?path=riwayat_order.php" . (isset($_GET['sales_id']) ? "&sales_id=" . intval($_GET['sales_id']) : ""));
+    header("Location:?path=riwayat_order" . (isset($_GET['sales_id']) ? "&sales_id=" . intval($_GET['sales_id']) : ""));
     exit();
 }
 
@@ -373,8 +373,8 @@ while ($row = $resultItems->fetch_assoc()) {
     <div class="order-header">
         <div><?= date('d M Y - H:i', strtotime($ord['created_at'])) ?></div>
         <div>
-            <a class="print-btn" href="/index.php?path=print_order.php&id=<?= $ord['id'] ?>" target="_blank"><i class="fa-solid fa-print"></i></a>
-            <a class="download-btn" href="/index.php?path=unduh_excel.php&id=<?= $ord['id'] ?>"><i class="fa-solid fa-download"></i></a>
+            <a class="print-btn" href="/index.php?path=print_order&id=<?= $ord['id'] ?>" target="_blank"><i class="fa-solid fa-print"></i></a>
+            <a class="download-btn" href="/index.php?path=unduh_excel&id=<?= $ord['id'] ?>"><i class="fa-solid fa-download"></i></a>
         </div>
     </div>
 
@@ -442,7 +442,7 @@ while ($row = $resultItems->fetch_assoc()) {
     </div>
 
     <br>
-    <a class="delete-btn" href="/index.php?path=hapus_order.php&id=<?= $ord['id'] ?>"><i class="fa-solid fa-trash"></i></a>
+    <a class="delete-btn" href="/index.php?path=hapus_order&id=<?= $ord['id'] ?>"><i class="fa-solid fa-trash"></i></a>
 </div>
 
 <?php } ?>

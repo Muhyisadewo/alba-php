@@ -1,64 +1,103 @@
 <?php
 include __DIR__ . '/../../config.php';
 
-// Pastikan ID retur ada
-if (!isset($_GET['id'])) {
-    die("ID retur tidak ditemukan.");
+/* ===============================
+   1. VALIDASI ID RETUR
+================================ */
+if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+    die("ID retur tidak valid.");
 }
+$retur_id = (int) $_GET['id'];
 
-$retur_id = intval($_GET['id']);
-
-// Ambil data retur berdasarkan ID
-$query = "SELECT * FROM returs WHERE id = ?";
-$stmt = $conn->prepare($query);
+/* ===============================
+   2. AMBIL DATA RETUR
+================================ */
+$stmt = $conn->prepare("SELECT * FROM returs WHERE id = ?");
 $stmt->bind_param("i", $retur_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result->num_rows == 0) {
+if ($result->num_rows === 0) {
     die("Data retur tidak ditemukan.");
 }
 
 $data = $result->fetch_assoc();
+$stmt->close();
 
-// Ambil daftar supplier
-$supplierQuery = "SELECT id, nama_supplier FROM supplier ORDER BY nama_supplier ASC";
-$supplierResult = $conn->query($supplierQuery);
+/* ===============================
+   3. AMBIL DAFTAR SUPPLIER
+================================ */
+$supplierResult = $conn->query(
+    "SELECT id, nama_supplier FROM supplier ORDER BY nama_supplier ASC"
+);
 
-// Jika form disubmit
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $supplier_id = intval($_POST['supplier_id']);
-    $qty_retur   = intval($_POST['qty_retur']);
-    $alasan      = $_POST['alasan'];
+/* ===============================
+   4. PROSES UPDATE
+================================ */
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    // Update data
-    $updateQuery = "
+    $supplier_id = (int) ($_POST['supplier_id'] ?? 0);
+    $qty         = (int) ($_POST['qty'] ?? 0);
+    $alasan      = trim($_POST['alasan'] ?? '');
+
+    if ($supplier_id <= 0 || $qty <= 0) {
+        die("Supplier dan Qty wajib diisi dengan benar.");
+    }
+
+    $updateStmt = $conn->prepare("
         UPDATE returs 
-        SET supplier_id = ?, qty_retur = ?, alasan = ?
+        SET supplier_id = ?, qty = ?, alasan = ?
         WHERE id = ?
-    ";
-    $updateStmt = $conn->prepare($updateQuery);
-    $updateStmt->bind_param("iisi", $supplier_id, $qty_retur, $alasan, $retur_id);
+    ");
+    $updateStmt->bind_param(
+        "iisi",
+        $supplier_id,
+        $qty,
+        $alasan,
+        $retur_id
+    );
 
     if ($updateStmt->execute()) {
-        echo "<script>alert('Retur berhasil diperbarui!'); window.location='index.php';</script>";
+        echo "<script>
+            alert('Retur berhasil diperbarui');
+            window.location='?path=retur';
+        </script>";
         exit;
     } else {
-        echo "Error: " . $conn->error;
+        die("Gagal update: " . $conn->error);
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <title>Edit Retur</title>
 <style>
-body { font-family: Arial; background: #f5f5f5; padding: 20px; }
-.container { max-width: 700px; margin:auto; background:white; padding:20px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.2);}
-input, select, textarea { width:100%; padding:10px; margin-bottom:12px; border:1px solid #ddd; border-radius:6px;}
-button { background:#0069d9; color:white; padding:10px 15px; border:none; border-radius:6px; cursor:pointer;}
+body { font-family: Arial; background:#f5f5f5; padding:20px; }
+.container {
+    max-width:700px;
+    margin:auto;
+    background:white;
+    padding:20px;
+    border-radius:8px;
+    box-shadow:0 2px 5px rgba(0,0,0,.2);
+}
+input, select, textarea {
+    width:100%;
+    padding:10px;
+    margin-bottom:12px;
+    border:1px solid #ddd;
+    border-radius:6px;
+}
+button {
+    background:#0069d9;
+    color:white;
+    padding:10px 15px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
 button:hover { background:#0053b3; }
 </style>
 </head>
@@ -72,17 +111,19 @@ button:hover { background:#0053b3; }
         <select name="supplier_id" required>
             <option value="">-- Pilih Supplier --</option>
             <?php while ($sup = $supplierResult->fetch_assoc()) { ?>
-                <option value="<?= $sup['id'] ?>" <?= $sup['id'] == $data['supplier_id'] ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($sup['nama_supplier']) ?>
+                <option value="<?= $sup['id']; ?>"
+                    <?= $sup['id'] == $data['supplier_id'] ? 'selected' : ''; ?>>
+                    <?= htmlspecialchars($sup['nama_supplier']); ?>
                 </option>
             <?php } ?>
         </select>
 
         <label>Qty Retur</label>
-        <input type="number" name="qty_retur" value="<?= intval($data['qty_retur']) ?>" required>
+        <input type="number" name="qty" min="1"
+               value="<?= (int) $data['qty']; ?>" required>
 
         <label>Alasan / Keterangan</label>
-        <textarea name="alasan" rows="3"><?= htmlspecialchars($data['alasan']) ?></textarea>
+        <textarea name="alasan" rows="3"><?= htmlspecialchars($data['alasan']); ?></textarea>
 
         <button type="submit">Update Retur</button>
     </form>

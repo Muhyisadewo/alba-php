@@ -96,5 +96,5 @@ $stmt->bind_param("ii", $subtotal, $order_id);
 $stmt->execute();
 $stmt->close();
 
-header("Location: ?path=daftar_barang.php?sales_id=" . $sales_id);
+header("Location: /index.php?path=daftar_barang&sales_id=" . $sales_id);
 exit;

@@ -70,7 +70,7 @@ $result = $stmt->get_result();
             <a class="btn btn-back" href="?path=order">
                 <span>&larr;</span> Kembali
             </a>
-            <a class="btn btn-add" href="?path=tambah_sales.php&supplier=<?= urlencode($nama_supplier) ?>">
+            <a class="btn btn-add" href="?path=tambah_sales&supplier=<?= urlencode($nama_supplier) ?>">
                 <span>+</span> Tambah Sales
             </a>
         </div>
@@ -81,7 +81,7 @@ $result = $stmt->get_result();
                 $no = 1;
                 while ($row = $result->fetch_assoc()) { ?>
                     <div class="card">
-                        <a class="edit-icon" href="?path=edit_sales.php&id=<?= $row['id'] ?>" title="Edit">✏️</a>
+                        <a class="edit-icon" href="?path=edit_sales&id=<?= $row['id'] ?>" title="Edit">✏️</a>
 
                         <div class="card-header">
                             <h3 class="card-title">Sales #<?= $no++ ?></h3>
@@ -104,10 +104,10 @@ $result = $stmt->get_result();
                         </div>
 
                         <div class="card-actions">
-                            <a class="action-btn" href="?path=riwayat_order/<?= $row['id'] ?>">Riwayat</a>
-                            <a class="action-btn" href="?path=daftar_barang/<?= $row['id'] ?>">Barang</a>
-                            <a class="action-btn" href="?path=monitor_sales/<?= $row['id'] ?>">Monitor</a>
-                            <a class="action-btn btn-order-now" href="?path=order_now/<?= $row['id'] ?>">Order</a>
+                            <a class="action-btn" href="?path=riwayat_order&sales_id=<?= $row['id'] ?>">Riwayat</a>
+                            <a class="action-btn" href="?path=daftar_barang&sales_id=<?= $row['id'] ?>">Barang</a>
+                            <a class="action-btn" href="?path=monitor_sales&sales_id=<?= $row['id'] ?>">Monitor</a>
+                            <a class="action-btn btn-order-now" href="?path=order_now&sales_id=<?= $row['id'] ?>">Order</a>
                         </div>
                     </div>
                 <?php }

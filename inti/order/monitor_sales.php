@@ -330,7 +330,7 @@ $monitoring_stmt->close();
             </div>
 
             <div class="action-area">
-                <a class="btn-checkin" href="?path=proses_kunjungan.php?sales_id=<?= $sales_id ?>">
+                <a class="btn-checkin" href="?path=proses_kunjungan&sales_id=<?= $sales_id ?>">
                     Checkin Kunjungan
                 </a>
                 <br>

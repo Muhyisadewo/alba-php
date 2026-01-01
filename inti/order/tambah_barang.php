@@ -31,238 +31,225 @@ if (!$sales) {
 <meta charset="UTF-8">
 <title>Tambah Barang</title>
 <style>
-    /* --- Global Styles & Reset --- */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #437057; /* Latar belakang abu-abu muda */
-    color: #333;
-    line-height: 1.6;
+    /* Reset dan base styles */
+* {
     margin: 0;
     padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* Mulai dari atas */
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+    color: #f0f0f0;
     min-height: 100vh;
+    padding: 15px;
+    line-height: 1.6;
 }
 
 .container {
-    background-color: #ffffff; /* Latar belakang kontainer putih */
-    padding: 30px 40px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Bayangan lembut */
     max-width: 100%;
-    width: 90%;
+    margin: 0 auto;
+    background-color: rgba(26, 26, 26, 0.9);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 215, 0, 0.1);
+    position: relative;
+    overflow: hidden;
 }
 
-/* --- Typography --- */
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #D4AF37, #FFD700, #D4AF37);
+    border-radius: 16px 16px 0 0;
+}
+
+/* Heading */
 h2 {
-    color:  #437057; /* Biru cerah untuk judul */
+    color: #FFD700;
     text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
     font-weight: 600;
-    border-bottom: 2px solid #e9ecef;
-    font-size: 2.8em;
+    font-size: 1.8rem;
+    letter-spacing: 1px;
 }
 
-/* --- Info Box (Detail Sales) --- */
+/* Info box */
 .info-box {
-    background-color: #e9f5ff; /* Latar belakang biru sangat muda */
-    border: 1px solid #cce5ff;
-    border-left: 5px solid #437057; /* Garis biru di kiri */
-    padding: 15px;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(26, 26, 26, 0.8));
+    border-left: 4px solid #D4AF37;
+    padding: 18px;
     margin-bottom: 25px;
-    border-radius: 6px;
-    font-size: 1.3em;
+    border-radius: 0 10px 10px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .info-box p {
-    margin: 5px 0;
+    margin-bottom: 10px;
+    font-size: 1rem;
 }
 
 .info-box strong {
-    font-size: 1.1em;
-    color:  #437057;
-    font-weight: 700;
+    color: #FFD700;
+    font-weight: 600;
 }
 
-/* --- Form Styling --- */
+/* Tombol */
+.btn {
+    display: inline-block;
+    background: linear-gradient(to right, #D4AF37, #FFD700);
+    color: #1a1a1a;
+    padding: 12px 24px;
+    text-decoration: none;
+    border-radius: 50px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 25px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);
+    width: 100%;
+    font-size: 1rem;
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(212, 175, 55, 0.5);
+}
+
+/* Form */
 form {
-    display: flex;
-    flex-direction: column;
-    font-size: 1.8em;
+    background-color: rgba(40, 40, 40, 0.7);
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 215, 0, 0.15);
 }
 
 label {
+    display: block;
     margin-bottom: 8px;
     font-weight: 500;
-    color: #555;
-    margin-top: 15px;
-    font-size: 1.1em;
+    color: #FFD700;
+    font-size: 1rem;
 }
 
 input[type="text"],
 input[type="number"],
 input[type="file"] {
     width: 100%;
-    font-size: 1.1em;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    box-sizing: border-box; /* Penting untuk padding */
-    transition: border-color 0.3s, box-shadow 0.3s;
-}
-
-input[type="text"]:focus,
-input[type="number"]:focus {
-    border-color:  #437057;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    outline: none;
-}
-
-/* Kustomisasi input file agar terlihat lebih baik */
-input[type="file"] {
-    padding: 12px 0; /* Hapus padding horizontal bawaan */
-    border: none;
-    background-color: transparent;
-}
-/* Menghilangkan border dan background bawaan pada input file */
-input[type="file"]::-webkit-file-upload-button {
-    background:  #437057;
-    color: white;
-    padding: 8px 15px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    margin-right: 10px;
-}
-
-input[type="file"]::-webkit-file-upload-button:hover {
-    background: #0056b3;
-}
-
-
-/* --- Buttons (Link dan Submit) --- */
-.btn,
-button[type="submit"] {
-    display: inline-block;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1em;
-    font-weight: 600;
-    text-align: center;
-    text-decoration: none;
-    transition: background-color 0.3s, transform 0.1s;
-    margin-top: 10px;
-}
-
-/* Tombol Kembali (Link) */
-.btn {
-    background-color: #6c757d; /* Abu-abu netral */
-    color: white;
+    padding: 14px;
     margin-bottom: 20px;
-    font-size: 1.3em;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 8px;
+    color: #f0f0f0;
+    font-size: 1rem;
+    transition: all 0.3s ease;
 }
 
-.btn:hover {
-    background-color: #5a6268;
-    transform: translateY(-1px);
+input:focus {
+    outline: none;
+    border-color: #FFD700;
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
 }
 
-/* Tombol Simpan Barang (Submit) */
+input[type="file"] {
+    padding: 10px;
+    background-color: rgba(255, 215, 0, 0.1);
+}
+
+/* Tombol submit */
 button[type="submit"] {
-    background-color: #437057; /* Hijau sukses */
-    color: white;
-    margin-top: 25px;
-    font-size: 1.3em;
+    background: linear-gradient(to right, #D4AF37, #FFD700);
+    color: #1a1a1a;
+    border: none;
+    padding: 16px;
+    width: 100%;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+    letter-spacing: 1px;
 }
 
 button[type="submit"]:hover {
-    background-color: #1e7e34;
-    transform: translateY(-1px);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(212, 175, 55, 0.5);
 }
 
-/* --- Responsiveness (Untuk layar kecil) --- */
-/* ... (Bagian CSS Global di atas tetap sama) ... */
-
-/* --- Responsiveness (Untuk layar kecil) --- */
-@media (max-width: 600px) {
-    /* Mengatur padding body untuk tampilan mobile */
-    body {
-        padding: 20px 10px;
-        align-items: flex-start;
-    }
-
+/* Responsiveness untuk layar lebih besar */
+@media (min-width: 576px) {
     .container {
-        padding: 20px;
-        width: 100%;
-        max-width: none;
-    }
-
-    /* 1. Judul Halaman */
-    h2 {
-        font-size: 2.0em; /* Dibuat lebih besar dari 1.5em yang Anda set sebelumnya */
-        padding-bottom: 15px;
-        margin-bottom: 20px;
-    }
-
-    /* 2. Info Box (Sales Detail) */
-    .info-box {
-        padding: 18px;
-        margin-bottom: 20px;
-        font-size: 1.05em; /* Ukuran font detail diperbesar */
-    }
-
-    .info-box p {
-        margin: 8px 0;
-    }
-
-    .info-box strong {
-        font-size: 1.15em; /* Teks tebal dibuat sangat menonjol */
-    }
-
-    /* 3. Label dan Input Form */
-    form {
-        font-size: 1em; /* Mengatur dasar ukuran font form */
-    }
-
-    label {
-        font-size: 1.1em; /* Label lebih besar */
-        margin-top: 10px;
-        margin-bottom: 5px;
-    }
-
-    input[type="text"],
-    input[type="number"] {
-        padding: 14px; /* Padding Input ditingkatkan untuk target sentuh lebih besar */
-        font-size: 1.15em; /* Ukuran teks di dalam input ditingkatkan */
-    }
-    
-    /* 4. Tombol */
-    .btn,
-    button[type="submit"] {
-        width: 100%; /* Tombol menjadi penuh */
-        padding: 15px 0; /* Padding vertikal tombol ditingkatkan */
-        font-size: 1.15em; /* Ukuran teks tombol ditingkatkan */
-        margin-left: 0;
-        margin-right: 0;
+        max-width: 540px;
+        padding: 30px;
+        margin: 30px auto;
     }
     
     .btn {
-        margin-bottom: 15px;
+        width: auto;
+        display: inline-block;
     }
-    
-    button[type="submit"] {
-        margin-top: 20px;
-    }
+}
 
-    /* Kustomisasi tombol input file untuk mobile */
-    input[type="file"]::-webkit-file-upload-button {
-        padding: 10px 18px;
-        font-size: 1em;
-    }
+/* Animasi untuk efek loading */
+@keyframes shimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: 200px 0; }
+}
+
+.loading {
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.1) 25%, rgba(255, 215, 0, 0.2) 50%, rgba(255, 215, 0, 0.1) 75%);
+    background-size: 200px 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* Placeholder styling */
+::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+/* File input custom styling */
+input[type="file"]::file-selector-button {
+    background: linear-gradient(to right, #D4AF37, #FFD700);
+    color: #1a1a1a;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-right: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background: linear-gradient(to right, #FFD700, #D4AF37);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(26, 26, 26, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #D4AF37, #FFD700);
+    border-radius: 4px;
 }
 </style>
 </head>
@@ -273,8 +260,8 @@ button[type="submit"]:hover {
     <p><strong>Nama Sales:</strong> <?= htmlspecialchars($sales['nama_sales']); ?></p>
     <p><strong>Supplier / Perusahaan:</strong> <?= htmlspecialchars($sales['perusahaan']); ?></p>
 </div>
-<a class="btn" href="?path=daftar_barang.php?sales_id=<?= $sales_id ?>">Kembali</a>
-<form action="?path=proses_tambah_barang.php" method="POST" enctype="multipart/form-data">
+<a class="btn" href="?path=daftar_barang&sales_id=<?= $sales_id ?>">Kembali</a>
+<form action="?path=proses_tambah_barang" method="POST" enctype="multipart/form-data">
 
     <input type="hidden" name="sales_id" value="<?= $sales_id ?>">
 

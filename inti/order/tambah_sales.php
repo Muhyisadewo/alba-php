@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_sales'])) {
     if ($stmt->execute()) {
         echo "<script>
             alert('Sales berhasil ditambahkan');
-            location.href='?path=supplier_detail/".urlencode($nama_supplier)."';
+            location.href='?path=supplier_detail&nama=".urlencode($nama_supplier)."';
         </script>";
     } else {
         echo "Error: " . $stmt->error;
@@ -313,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_sales'])) {
 <button type="submit">SIMPAN SALES</button>
 </form>
 
-<a href="?path=supplier_detail.php?nama=<?= urlencode($nama_supplier) ?>">Kembali</a>
+<a href="?path=supplier_detail&nama=<?= urlencode($nama_supplier) ?>">Kembali</a>
 </div>
 <div class="modal" id="modalJenis">
 <div class="modal-box">

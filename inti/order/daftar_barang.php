@@ -216,8 +216,8 @@ $stmt->close();
         <p><strong>Supplier / Perusahaan:</strong> <?= htmlspecialchars($sales['perusahaan']) ?></p>
     </div>
 
-    <a class="btn" href="index.php">Kembali</a>
-    <a class="btn" href="?path=tambah_barang.php?sales_id=<?= $sales_id ?>">Tambah Barang</a>
+    <a class="btn" href="/index.php">Kembali</a>
+    <a class="btn" href="?path=tambah_barang&sales_id=<?= $sales_id ?>">Tambah Barang</a>
 
     <table>
         <tr>
@@ -255,8 +255,8 @@ $stmt->close();
                 <?php endif; ?>
             </td>
             <td class="aksi-btn">
-                <a class="edit-btn" href="?path=edit_barang.php?id=<?= $row['id'] ?>">Edit</a>
-                <a class="delete-btn" href="?path=hapus_order_barang.php?id=<?= $row['id'] ?>" onclick="return confirm('Yakin ingin menghapus barang ini?')">Hapus</a>
+                <a class="edit-btn" href="?path=edit_barang&id=<?= $row['id'] ?>">Edit</a>
+                <a class="delete-btn" href="?path=hapus_order_barang&id=<?= $row['id'] ?>" onclick="return confirm('Yakin ingin menghapus barang ini?')">Hapus</a>
             </td>
         </tr>
         <?php } } else { ?>

@@ -398,7 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                 $no = 1;
                 while($row = $result->fetch_assoc()) { 
                     $nama_supplier = htmlspecialchars($row['nama_supplier']);
-                    $url_detail = 'index.php?path=supplier_detail.php&nama=' . urlencode($nama_supplier);
+                    $url_detail = '?path=supplier_detail&nama=' . urlencode($nama_supplier);
                     ?>
                     <tr>
                         <td data-label="No"><?= $no++; ?></td>
@@ -434,7 +434,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                 mysqli_data_seek($result, 0); // Reset pointer result
                 while($row = $result->fetch_assoc()) {
                     $nama_supplier = htmlspecialchars($row['nama_supplier']);
-                    $url_detail = '../../index.php?path=supplier_detail/' . urlencode($nama_supplier);
+                    $url_detail = '?path=supplier_detail&nama=' . urlencode($nama_supplier);
                     ?>
                     <div class="supplier-card">
                         <a href="<?= $url_detail; ?>" class="card-header-link">
@@ -460,7 +460,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         </div>
     </div>
 
-    <button class="add-btn" onclick="window.location.href='?path=tambah_supplier.php'">+</button>
+    <button class="add-btn" onclick="window.location.href='?path=tambah_supplier'">+</button>
 
 </body>
 </html>

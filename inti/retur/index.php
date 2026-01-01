@@ -252,7 +252,7 @@ p {
 <body>
 <div class="container">
     <h2>Daftar Retur Barang</h2>
-    <a href="retur_add.php" class="add-btn">+ Tambah Retur Baru</a>
+    <a href="?path=retur_add" class="add-btn">+ Tambah Retur Baru</a>
 
     <!-- Form Filter -->
     <form method="GET" class="form-filter">
@@ -288,8 +288,8 @@ p {
                     <p><strong>Sales:</strong> <?= htmlspecialchars($row['nama_sales'] ?? '-') ?></p>
                     <p><strong>Qty:</strong> <?= intval($row['qty'] ?? 0) ?></p>
                     <div class="actions">
-                        <a href="retur_edit.php?id=<?= $row['retur_id'] ?>" class="btn-edit">Edit</a>
-                        <a href="retur_delete.php?id=<?= $row['retur_id'] ?>" class="btn-delete" onclick="return confirm('Yakin ingin menghapus retur ini?')">Hapus</a>
+                        <a href="?path=retur_edit&id=<?= $row['retur_id'] ?>" class="btn-edit">Edit</a>
+                        <a href="?path=retur_delete&id=<?= $row['retur_id'] ?>" class="btn-delete" onclick="return confirm('Yakin ingin menghapus retur ini?')">Hapus</a>
                     </div>
                 </div>
             <?php endwhile; ?>

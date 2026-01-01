@@ -55,5 +55,5 @@ $stmtDelete->close();
 /* ===============================
    5. REDIRECT KEMBALI KE DAFTAR BARANG
 ================================ */
-header("Location: ?path=daftar_barang.php?sales_id=" . $sales_id);
+header("Location: ?path=daftar_barang&sales_id=" . $sales_id);
 exit;

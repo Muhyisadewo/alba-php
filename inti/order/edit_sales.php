@@ -284,49 +284,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <body>
 
-<div class="card">
-<h2>Edit Sales</h2>
-<p>Supplier: <b><?= htmlspecialchars($row['perusahaan']) ?></b></p>
+    <div class="card">
+        <h2>Edit Sales</h2>
+        <p>Supplier: <b><?= htmlspecialchars($row['perusahaan']) ?></b></p>
 
-<form method="POST">
-<input type="hidden" name="edit_sales" value="1">
+        <form method="POST">
+            <input type="hidden" name="edit_sales" value="1">
 
-<label>Nama Sales</label>
-<input type="text" name="nama_sales" value="<?= htmlspecialchars($row['nama_sales']) ?>" required>
+            <label>Nama Sales</label>
+            <input type="text" name="nama_sales" value="<?= htmlspecialchars($row['nama_sales']) ?>" required>
 
-<label>No HP</label>
-<input type="text" name="kontak" value="<?= htmlspecialchars($row['kontak']) ?>" required>
+            <label>No HP</label>
+            <input type="text" name="kontak" value="<?= htmlspecialchars($row['kontak']) ?>" required>
 
-<label>Jenis Kunjungan</label>
-<div class="jenis-container">
-<select name="jenis_kunjungan" id="jenisSelect" required onchange="aktifkanInterval()">
-<option value="">-- Pilih Jenis --</option>
-<?php foreach ($jenisKunjungan as $j): ?>
-<option value="<?= $j['id'] ?>" <?= $row['jenis_kunjungan_id'] == $j['id'] ? 'selected' : '' ?>><?= htmlspecialchars($j['nama_jenis']) ?></option>
-<?php endforeach ?>
-</select>
+            <label>Jenis Kunjungan</label>
+            <div class="jenis-container">
+                <select name="jenis_kunjungan" id="jenisSelect" required onchange="aktifkanInterval()">
+                <option value="">-- Pilih Jenis --</option>
+                <?php foreach ($jenisKunjungan as $j): ?>
+                <option value="<?= $j['id'] ?>" <?= $row['jenis_kunjungan_id'] == $j['id'] ? 'selected' : '' ?>><?= htmlspecialchars($j['nama_jenis']) ?></option>
+                <?php endforeach ?>
+                </select>
 
-<button type="button" class="btn-add" onclick="openModal()" title="Tambah Jenis Kunjungan">+</button>
-</div>
+                <button type="button" class="btn-add" onclick="openModal()" title="Tambah Jenis Kunjungan">+</button>
+            </div>
 
-<label id="intervalLabel">Interval Kunjungan</label>
-<input type="number" name="interval_kunjungan" id="intervalInput" min="1" value="<?= htmlspecialchars($row['interval_kunjungan']) ?>" required>
+            <label id="intervalLabel">Interval Kunjungan</label>
+            <input type="number" name="interval_kunjungan" id="intervalInput" min="1" value="<?= htmlspecialchars($row['interval_kunjungan']) ?>" required>
 
-<button type="submit">UPDATE SALES</button>
-</form>
+            <button type="submit">UPDATE SALES</button>
+        </form>
 
-<a href="?path=supplier_detail.php?nama=<?= urlencode($row['perusahaan']) ?>">Kembali</a>
-</div>
-<div class="modal" id="modalJenis">
-<div class="modal-box">
-<h3>Tambah Jenis Kunjungan</h3>
+        <a href="?path=supplier_detail&nama=<?= urlencode($row['perusahaan']) ?>">Kembali</a>
+    </div>
+    <div class="modal" id="modalJenis">
+        <div class="modal-box">
+            <h3>Tambah Jenis Kunjungan</h3>
 
-<input type="text" id="namaJenis" placeholder="Contoh: Mingguan">
+            <input type="text" id="namaJenis" placeholder="Contoh: Mingguan">
 
-<button onclick="simpanJenis()">Simpan</button>
-<button onclick="closeModal()" style="background:#aaa;margin-top:6px">Batal</button>
-</div>
-</div>
+            <button onclick="simpanJenis()">Simpan</button>
+            <button onclick="closeModal()" style="background:#aaa;margin-top:6px">Batal</button>
+        </div>
+    </div>
 
 <script>
 function openModal(){

@@ -1,111 +1,132 @@
 <?php
-session_start(); // Tambahkan ini di atas untuk session
+session_start();
 include __DIR__ . '/../../config.php';
 
-// --- 1. VALIDASI DAN PENGAMBILAN DATA SALES (PILIH) ---
+/* =========================================
+   1. VALIDASI SALES
+========================================= */
 if (!isset($_GET['sales_id']) || !is_numeric($_GET['sales_id'])) {
     die("Sales ID tidak valid.");
 }
-$sales_id = intval($_GET['sales_id']);
+$sales_id = (int) $_GET['sales_id'];
 
-$stmtSales = $conn->prepare("SELECT id, nama_sales, perusahaan FROM sales WHERE id=?"); // Ubah supplier_id ke perusahaan (nama supplier)
+$stmtSales = $conn->prepare(
+    "SELECT id, nama_sales, perusahaan FROM sales WHERE id = ?"
+);
 $stmtSales->bind_param("i", $sales_id);
 $stmtSales->execute();
-$resultSales = $stmtSales->get_result();
-if ($resultSales->num_rows < 1) {
-    die("Data Sales tidak ditemukan.");
-}
-$sales = $resultSales->fetch_assoc();
+$sales = $stmtSales->get_result()->fetch_assoc();
 $stmtSales->close();
 
-// --- 2. PENGAMBILAN DAFTAR BARANG YANG AKAN DIORDER ---
-// Mengambil semua barang yang dimiliki oleh sales ini dari tabel daftar_barang.
-// Ditambahkan join ke tabel gudang, gudang_pecahon, dan returs untuk mengambil qty stok.
-$sql = "
+if (!$sales) {
+    die("Data Sales tidak ditemukan.");
+}
+
+/* =========================================
+   2. AMBIL DAFTAR BARANG
+========================================= */
+$sqlBarang = "
     SELECT
         db.id, db.nama_barang, db.harga_ambil, db.gambar,
-        COALESCE(g.qty, 0) AS stok_qty,  -- Qty Gudang Ats dari tabel gudang
-        COALESCE(gp.qty, 0) AS qty_pc,   -- Qty Gudang Pc dari tabel gudang_pecahon
-        COALESCE(SUM(r.qty), 0) AS qty_retur  -- Total Retur dari tabel returs
+        COALESCE(g.qty, 0) AS stok_qty,
+        COALESCE(gp.qty, 0) AS qty_pc,
+        COALESCE(SUM(r.qty), 0) AS qty_retur
     FROM daftar_barang db
-    LEFT JOIN gudang g ON g.nama_barang COLLATE utf8mb4_unicode_ci = db.nama_barang COLLATE utf8mb4_unicode_ci -- Join ke gudang untuk Gudang Ats
-    LEFT JOIN gudang_pecahon gp ON gp.nama_barang COLLATE utf8mb4_unicode_ci = db.nama_barang COLLATE utf8mb4_unicode_ci -- Join ke gudang_pecahon untuk Gudang Pc
-    LEFT JOIN returs r ON r.daftar_barang_id = db.id -- Join ke returs untuk Retur
-    WHERE db.sales_id = ? -- Filter berdasarkan Sales ID
-    GROUP BY db.id -- Memastikan setiap barang hanya muncul sekali
+    LEFT JOIN gudang g 
+        ON g.nama_barang COLLATE utf8mb4_unicode_ci = db.nama_barang COLLATE utf8mb4_unicode_ci
+    LEFT JOIN gudang_pecahon gp 
+        ON gp.nama_barang COLLATE utf8mb4_unicode_ci = db.nama_barang COLLATE utf8mb4_unicode_ci
+    LEFT JOIN returs r 
+        ON r.daftar_barang_id = db.id
+    WHERE db.sales_id = ?
+    GROUP BY db.id
     ORDER BY db.nama_barang ASC
 ";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $sales_id);
-$stmt->execute();
-$resultBarang = $stmt->get_result();
-$stmt->close();
+$stmtBarang = $conn->prepare($sqlBarang);
+$stmtBarang->bind_param("i", $sales_id);
+$stmtBarang->execute();
+$resultBarang = $stmtBarang->get_result();
+$stmtBarang->close();
 
-// --- 3. TANGANI POST (SAVE ORDER) ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && 
-    isset($_POST['qty']) && is_array($_POST['qty']) && 
-    isset($_POST['satuan']) && is_array($_POST['satuan'])) {
-    
+/* =========================================
+   3. PROSES SAVE ORDER
+========================================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['qty'])) {
+
     $grandTotal = 0;
-    $dataOrder = [];
+    $dataOrder  = [];
 
-    // Looping untuk memvalidasi dan menghitung subtotal
     foreach ($_POST['qty'] as $barang_id => $qty) {
-        $qty = intval($qty);
-        $satuan = htmlspecialchars($_POST['satuan'][$barang_id] ?? ''); 
+        $qty    = (int) $qty;
+        $satuan = trim($_POST['satuan'][$barang_id] ?? '');
 
-        // Lewati jika Qty 0 atau Satuan kosong
-        if ($qty <= 0 || empty($satuan)) continue;
+        if ($qty <= 0 || $satuan === '') continue;
 
-        // Ambil data barang (hanya butuh nama, harga, gambar)
-        $stmtBarang = $conn->prepare("SELECT nama_barang, harga_ambil, gambar FROM daftar_barang WHERE id=?");
-        $stmtBarang->bind_param("i", $barang_id);
-        $stmtBarang->execute();
-        $rowBarang = $stmtBarang->get_result()->fetch_assoc();
-        $stmtBarang->close();
-        if (!$rowBarang) continue;
+        $stmt = $conn->prepare(
+            "SELECT nama_barang, harga_ambil, gambar 
+             FROM daftar_barang WHERE id = ?"
+        );
+        $stmt->bind_param("i", $barang_id);
+        $stmt->execute();
+        $barang = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
 
-        $subtotal = $qty * floatval($rowBarang['harga_ambil']);
+        if (!$barang) continue;
+
+        $subtotal   = $qty * (float) $barang['harga_ambil'];
         $grandTotal += $subtotal;
 
         $dataOrder[] = [
-            'nama_barang' => $rowBarang['nama_barang'],
-            'harga' => floatval($rowBarang['harga_ambil']),
-            'qty' => $qty,
-            'subtotal' => $subtotal,
-            'gambar' => $rowBarang['gambar'],
-            'satuan' => $satuan
+            'nama_barang' => $barang['nama_barang'],
+            'harga'       => (float) $barang['harga_ambil'],
+            'qty'         => $qty,
+            'subtotal'    => $subtotal,
+            'gambar'      => $barang['gambar'],
+            'satuan'      => $satuan
         ];
     }
 
-    if (count($dataOrder) > 0) {
-        // Ambil order_id TERBARU/TERAKHIR yang dimiliki sales ini sebagai Order Header
-        $stmtOrderId = $conn->prepare("SELECT id FROM orders WHERE sales_id = ? ORDER BY id DESC LIMIT 1");
-        $stmtOrderId->bind_param("i", $sales_id);
-        $stmtOrderId->execute();
-        $order_row = $stmtOrderId->get_result()->fetch_assoc();
-        $order_id = $order_row['id'] ?? 0; 
-        $stmtOrderId->close();
+    if (count($dataOrder) === 0) {
+        header("Location: ?path=order_now&sales_id=".$sales_id);
+        exit;
+    }
 
-        // Insert ke riwayat_order (Header)
-        $stmtHead = $conn->prepare("
-            INSERT INTO riwayat_order (order_id, total_harga, created_at)
-            VALUES (?, ?, NOW())
-        ");
-        $stmtHead->bind_param("id", $order_id, $grandTotal);
-        $stmtHead->execute();
+    /* =========================================
+       TRANSAKSI DATABASE
+    ========================================= */
+    $conn->begin_transaction();
+
+    try {
+        // 1️⃣ BUAT ORDER (HEADER UTAMA)
+        $stmtOrder = $conn->prepare(
+            "INSERT INTO orders (sales_id, total_harga, created_at)
+             VALUES (?, ?, NOW())"
+        );
+        $stmtOrder->bind_param("id", $sales_id, $grandTotal);
+        $stmtOrder->execute();
+        $order_id = $conn->insert_id;
+        $stmtOrder->close();
+
+        // 2️⃣ BUAT RIWAYAT ORDER
+        $stmtRiwayat = $conn->prepare(
+            "INSERT INTO riwayat_order (order_id, total_harga, created_at)
+             VALUES (?, ?, NOW())"
+        );
+        $stmtRiwayat->bind_param("id", $order_id, $grandTotal);
+        $stmtRiwayat->execute();
         $riwayat_order_id = $conn->insert_id;
-        $stmtHead->close();
+        $stmtRiwayat->close();
 
-        // Insert detail
+        // 3️⃣ DETAIL RIWAYAT
         $stmtDetail = $conn->prepare("
-            INSERT INTO riwayat_order_detail (riwayat_order_id, nama_barang, harga, qty, subtotal, gambar, satuan, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+            INSERT INTO riwayat_order_detail
+            (riwayat_order_id, nama_barang, harga, qty, subtotal, gambar, satuan)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
 
         foreach ($dataOrder as $item) {
             $stmtDetail->bind_param(
-                "isddiss", 
+                "isiddss",
                 $riwayat_order_id,
                 $item['nama_barang'],
                 $item['harga'],
@@ -118,14 +139,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
         }
         $stmtDetail->close();
 
-        // Set session untuk tampilkan modal sukses
-        $_SESSION['show_success_modal'] = true;
+        $conn->commit();
 
-        // Redirect ke halaman sendiri untuk tampilkan modal
-        header("Location: /index.php?path=order_now.php&sales_id=" . $sales_id);
-        exit();
+        $_SESSION['show_success_modal'] = true;
+        header("Location: /index.php?path=order_now&sales_id=".$sales_id);
+        exit;
+
+    } catch (Exception $e) {
+        $conn->rollback();
+        die("Gagal menyimpan order: " . $e->getMessage());
     }
 }
+
 $conn->close();
 ?>
 
@@ -538,7 +563,7 @@ document.addEventListener('DOMContentLoaded', updateTotal);
 
 // Fungsi redirect ke supplier detail
 function redirectToSupplier() {
-    window.location.href = '/index.php?path=supplier_detail.php&nama=' + supplierNama;
+    window.location.href = '/index.php?path=supplier_detail&nama=' + supplierNama;
 }
 
 // Tampilkan modal jika session ada

@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     );
 
     if ($stmt->execute()) {
-        header("Location: ?path=daftar_barang.php?sales_id={$sales_id}");
+        header("Location: ?path=daftar_barang&sales_id={$sales_id}");
         exit;
     }
 
@@ -279,7 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </form>
 
-    <a class="btn-back" href="?path=daftar_barang.php?sales_id=<?= $sales_id; ?>">Kembali</a>
+    <a class="btn-back" href="?path=daftar_barang&sales_id=<?= $sales_id; ?>">Kembali</a>
 </div>
 
 <script>

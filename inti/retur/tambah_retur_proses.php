@@ -33,5 +33,5 @@ $stmt->bind_param("iiis", $daftar_barang_id, $order_id, $supplier_id, $alasan);
 $stmt->execute();
 $stmt->close();
 
-header("Location: index.php");
+header("Location: /index.php?path=retur");
 exit;
