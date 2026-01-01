@@ -1,4 +1,30 @@
 ﻿<?php
+session_start();
+
+// Access control - check if user is logged in, except for exempted files
+$exempted_files = ['generate_template.php', 'import_barang.php'];
+$current_file = basename($_SERVER['PHP_SELF']);
+
+if (!in_array($current_file, $exempted_files)) {
+    if (!isset($_SESSION['user_email'])) {
+        header('Location: login.php');
+        exit;
+    }
+
+    // Verify email is still allowed (in case it was removed while session active)
+    include 'config.php';
+    $stmt = $conn->prepare("SELECT email FROM allowed_emails WHERE email = ?");
+    $stmt->execute([$_SESSION['user_email']]);
+    $result = $stmt->get_result();
+    if ($result->num_rows == 0) {
+        session_destroy();
+        header('Location: login.php');
+        exit;
+    }
+    $stmt->close();
+    $conn->close();
+}
+
 // Routing logic (tetap sama seperti sebelumnya)
 if (isset($_GET['path'])) {
     $path = $_GET['path'];
