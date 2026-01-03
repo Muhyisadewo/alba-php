@@ -1006,7 +1006,7 @@ $conn->close();
             <div class="logo">
                 <i class="fas fa-warehouse"></i>
             </div>
-            <h1>ALBA Inventory System</h1>
+            <h1>ALBA System Inventory</h1>
             <p class="subtitle">Mau kemana hari ini?</p>
         </div>
         

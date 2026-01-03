@@ -96,12 +96,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['qty'])) {
     $conn->begin_transaction();
 
     try {
+        // Get payment type
+        $payment_type = $_POST['payment_type'] ?? 'cash';
+        $status = ($payment_type === 'cash') ? 'sudah_dibayar' : 'belum_dibayar';
+
         // 1️⃣ BUAT ORDER (HEADER UTAMA)
         $stmtOrder = $conn->prepare(
-            "INSERT INTO orders (sales_id, total_harga, created_at)
-             VALUES (?, ?, NOW())"
+            "INSERT INTO orders (sales_id, total_harga, status, created_at)
+             VALUES (?, ?, ?, NOW())"
         );
-        $stmtOrder->bind_param("id", $sales_id, $grandTotal);
+        $stmtOrder->bind_param("ids", $sales_id, $grandTotal, $status);
         $stmtOrder->execute();
         $order_id = $conn->insert_id;
         $stmtOrder->close();
@@ -458,6 +462,21 @@ while($row = $resultBarang->fetch_assoc()) {
 
 <div id="grandTotalBox">
     TOTAL PESANAN: Rp <span id="grandTotal">0</span>
+</div>
+
+<!-- Payment Type Selection -->
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #fff; border: 1px solid #ddd; border-radius: 5px;">
+    <h5 style="margin-bottom: 15px; color: #333;">Pilih Tipe Pembayaran</h5>
+    <div style="display: flex; justify-content: center; gap: 30px;">
+        <label style="display: flex; align-items: center; cursor: pointer;">
+            <input type="radio" name="payment_type" value="cash" checked style="margin-right: 8px;">
+            <span style="font-weight: bold; color: #28a745;">CASH</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+            <input type="radio" name="payment_type" value="tempo" style="margin-right: 8px;">
+            <span style="font-weight: bold; color: #007bff;">TEMPO</span>
+        </label>
+    </div>
 </div>
 
 <button id="saveBtn">SAVE ORDER</button>
