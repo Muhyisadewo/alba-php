@@ -22,7 +22,6 @@ if (!in_array($current_file, $exempted_files)) {
         exit;
     }
     $stmt->close();
-    $conn->close();
 }
 
 // Routing logic (tetap sama seperti sebelumnya)
@@ -31,6 +30,8 @@ if (isset($_GET['path'])) {
 
     // Define routes mapping
     $routes = [
+        'laporan' => 'inti/laporan/index.php',
+        'toggle_listing' => 'inti/order/toggle_listing.php',
         'hapus_barang_pecahon' => 'inti/gudang/hapus_barang_pecahon.php',
         'gudang_pecahon' => 'inti/gudang/gudang_pecahon.php',
         'tambah_barang_sektor' => 'inti/gudang/tambah_barang_sektor.php',

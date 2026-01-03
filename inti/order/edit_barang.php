@@ -120,131 +120,176 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Barang</title>
     <style>
+        /* Mobile-first CSS untuk layar HP kecil */
+
+        /* Reset dan base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #437057;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 10px;
         }
+
         .wrap {
-            background-color: white;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            width: 100%;
-            max-width: 28rem;
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        @media (min-width: 768px) {
-            .wrap {
-                max-width: 32rem;
-            }
-        }
-        @media (min-width: 1024px) {
-            .wrap {
-                max-width: 36rem;
-            }
-        }
-        /* Responsif untuk layar kecil: penuhi semua layar */
-        @media (max-width: 767px) {
-            body {
-                padding: 0;
-            }
-            .wrap {
-                width: 100%;
-                max-width: none;
-                padding: 1rem;
-                border-radius: 0;
-                box-shadow: none;
-            }
-        }
+
         h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
             font-size: 1.5rem;
-            font-weight: bold;
-            color: #437057;
-            margin-bottom: 1rem;
             text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
         }
-        @media (min-width: 768px) {
-            h2 {
-                font-size: 1.875rem;
-            }
-        }
+
         p {
             color: #dc2626;
             font-weight: 500;
-            margin-bottom: 1rem;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
         }
+
         form {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 15px;
         }
+
         label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #374151;
-            margin-bottom: 0.25rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
         }
-        input[type="text"], input[type="number"], input[type="file"] {
-            width: 90%;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
+
+        input[type="text"],
+        input[type="number"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="file"]:focus {
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
         }
-        input[type="text"]:focus, input[type="number"]:focus, input[type="file"]:focus {
-            border-color: #437057;
-            box-shadow: 0 0 0 3px rgba(67, 112, 87, 0.1);
-        }
+
         input[readonly] {
             background-color: #f9fafb;
             color: #6b7280;
         }
+
         img {
             max-width: 100px;
             height: auto;
-            border-radius: 0.25rem;
-            margin-bottom: 0.5rem;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
         }
+
         .btn-primary {
-            width: 100%;
-            background-color: #437057;
+            background: #27ae60;
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
+            padding: 12px;
             border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s;
-            font-weight: 500;
+            transition: background 0.3s ease;
+            width: 100%;
         }
+
         .btn-primary:hover {
-            background-color: #365a46;
+            background: #229954;
         }
-        .btn-primary:focus {
-            outline: 2px solid #437057;
-            outline-offset: 2px;
-        }
+
         .btn-back {
             display: inline-block;
-            background-color: #6b7280;
+            background: #6b7280;
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
+            padding: 10px 15px;
             text-decoration: none;
-            margin-top: 1rem;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            transition: background 0.3s ease;
+            width: 100%;
             text-align: center;
-            transition: background-color 0.2s;
         }
+
         .btn-back:hover {
-            background-color: #4b5563;
+            background: #4b5563;
         }
-        .btn-back:focus {
-            outline: 2px solid #6b7280;
-            outline-offset: 2px;
+
+        /* Media queries untuk layar yang lebih besar */
+        @media (min-width: 576px) {
+            body {
+                padding: 20px;
+            }
+
+            .wrap {
+                max-width: 500px;
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 1.8rem;
+            }
+
+            .btn-primary,
+            .btn-back {
+                width: auto;
+                display: inline-block;
+            }
+
+            img {
+                max-width: 120px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .wrap {
+                max-width: 600px;
+            }
+
+            form {
+                gap: 20px;
+            }
+
+            input[type="text"],
+            input[type="number"],
+            input[type="file"] {
+                padding: 15px;
+            }
+
+            .btn-primary {
+                padding: 15px 30px;
+            }
+
+            .btn-back {
+                padding: 12px 20px;
+            }
         }
     </style>
 </head>

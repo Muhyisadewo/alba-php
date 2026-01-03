@@ -13,6 +13,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Validasi supplier_id ada di database
+    if ($supplier_id > 0) {
+        $check_supplier = $conn->prepare("SELECT id FROM supplier WHERE id = ?");
+        $check_supplier->bind_param("i", $supplier_id);
+        $check_supplier->execute();
+        $supplier_result = $check_supplier->get_result();
+        if ($supplier_result->num_rows == 0) {
+            echo "Supplier tidak ditemukan.";
+            exit;
+        }
+        $check_supplier->close();
+    } else {
+        echo "Supplier harus dipilih.";
+        exit;
+    }
+
+    // Validasi daftar_barang_id ada di database
+    $check_barang = $conn->prepare("SELECT id FROM daftar_barang WHERE id = ?");
+    $check_barang->bind_param("i", $daftar_barang_id);
+    $check_barang->execute();
+    $barang_result = $check_barang->get_result();
+    if ($barang_result->num_rows == 0) {
+        echo "Barang tidak ditemukan.";
+        exit;
+    }
+    $check_barang->close();
+
     $stmt = $conn->prepare("INSERT INTO returs (daftar_barang_id, order_id, supplier_id, qty, alasan, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
     $stmt->bind_param("iiiis", $daftar_barang_id, $order_id, $supplier_id, $qty, $alasan);
 
